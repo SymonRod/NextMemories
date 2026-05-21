@@ -1,0 +1,58 @@
+name: next_memories
+description: App mobile Flutter per sfogliare, sincronizzare e visualizzare foto da Nextcloud Memories.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.0
+  riverpod_annotation: ^2.6.0
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # Networking
+  dio: ^5.7.0
+  webdav_client: ^1.2.2
+
+  # Persistenza
+  drift: ^2.20.0
+  sqlite3_flutter_libs: ^0.5.0
+  hive_flutter: ^1.1.0
+  flutter_cache_manager: ^3.4.0
+
+  # Immagini
+  cached_network_image: ^3.4.0
+  photo_manager: ^3.6.0
+
+  # Widget Android
+  home_widget: ^0.7.0
+
+  # Auth sicura
+  flutter_secure_storage: ^9.2.0
+
+  # Utility
+  freezed_annotation: ^2.4.0
+  json_annotation: ^4.9.0
+  fpdart: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^2.6.0
+  build_runner: ^2.4.0
+  freezed: ^2.5.0
+  json_serializable: ^6.9.0
+  drift_dev: ^2.20.0
+
+flutter:
+  uses-material-design: true
