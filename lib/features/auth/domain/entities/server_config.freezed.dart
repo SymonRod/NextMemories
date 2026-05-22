@@ -20,6 +20,7 @@ mixin _$ServerConfig {
   String get serverUrl => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   String get appPassword => throw _privateConstructorUsedError;
+  String? get serverName => throw _privateConstructorUsedError;
 
   /// Create a copy of ServerConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -35,7 +36,12 @@ abstract class $ServerConfigCopyWith<$Res> {
     $Res Function(ServerConfig) then,
   ) = _$ServerConfigCopyWithImpl<$Res, ServerConfig>;
   @useResult
-  $Res call({String serverUrl, String username, String appPassword});
+  $Res call({
+    String serverUrl,
+    String username,
+    String appPassword,
+    String? serverName,
+  });
 }
 
 /// @nodoc
@@ -56,6 +62,7 @@ class _$ServerConfigCopyWithImpl<$Res, $Val extends ServerConfig>
     Object? serverUrl = null,
     Object? username = null,
     Object? appPassword = null,
+    Object? serverName = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -71,6 +78,10 @@ class _$ServerConfigCopyWithImpl<$Res, $Val extends ServerConfig>
                 ? _value.appPassword
                 : appPassword // ignore: cast_nullable_to_non_nullable
                       as String,
+            serverName: freezed == serverName
+                ? _value.serverName
+                : serverName // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -86,7 +97,12 @@ abstract class _$$ServerConfigImplCopyWith<$Res>
   ) = __$$ServerConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String serverUrl, String username, String appPassword});
+  $Res call({
+    String serverUrl,
+    String username,
+    String appPassword,
+    String? serverName,
+  });
 }
 
 /// @nodoc
@@ -106,6 +122,7 @@ class __$$ServerConfigImplCopyWithImpl<$Res>
     Object? serverUrl = null,
     Object? username = null,
     Object? appPassword = null,
+    Object? serverName = freezed,
   }) {
     return _then(
       _$ServerConfigImpl(
@@ -121,6 +138,10 @@ class __$$ServerConfigImplCopyWithImpl<$Res>
             ? _value.appPassword
             : appPassword // ignore: cast_nullable_to_non_nullable
                   as String,
+        serverName: freezed == serverName
+            ? _value.serverName
+            : serverName // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -133,6 +154,7 @@ class _$ServerConfigImpl implements _ServerConfig {
     required this.serverUrl,
     required this.username,
     required this.appPassword,
+    this.serverName,
   });
 
   @override
@@ -141,10 +163,12 @@ class _$ServerConfigImpl implements _ServerConfig {
   final String username;
   @override
   final String appPassword;
+  @override
+  final String? serverName;
 
   @override
   String toString() {
-    return 'ServerConfig(serverUrl: $serverUrl, username: $username, appPassword: $appPassword)';
+    return 'ServerConfig(serverUrl: $serverUrl, username: $username, appPassword: $appPassword, serverName: $serverName)';
   }
 
   @override
@@ -157,12 +181,14 @@ class _$ServerConfigImpl implements _ServerConfig {
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.appPassword, appPassword) ||
-                other.appPassword == appPassword));
+                other.appPassword == appPassword) &&
+            (identical(other.serverName, serverName) ||
+                other.serverName == serverName));
   }
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, serverUrl, username, appPassword);
+      Object.hash(runtimeType, serverUrl, username, appPassword, serverName);
 
   /// Create a copy of ServerConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -178,6 +204,7 @@ abstract class _ServerConfig implements ServerConfig {
     required final String serverUrl,
     required final String username,
     required final String appPassword,
+    final String? serverName,
   }) = _$ServerConfigImpl;
 
   @override
@@ -186,6 +213,8 @@ abstract class _ServerConfig implements ServerConfig {
   String get username;
   @override
   String get appPassword;
+  @override
+  String? get serverName;
 
   /// Create a copy of ServerConfig
   /// with the given fields replaced by the non-null parameter values.

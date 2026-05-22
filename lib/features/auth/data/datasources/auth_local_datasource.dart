@@ -6,6 +6,7 @@ import '../models/server_config_model.dart';
 
 class AuthLocalDatasource {
   static const _key = 'server_config';
+  static const _lastKey = 'last_server_config';
 
   final FlutterSecureStorage _storage;
   const AuthLocalDatasource(this._storage);
@@ -22,5 +23,15 @@ class AuthLocalDatasource {
 
   Future<void> clearConfig() async {
     await _storage.delete(key: _key);
+  }
+
+  Future<ServerConfigModel?> getLastConfig() async {
+    final raw = await _storage.read(key: _lastKey);
+    if (raw == null) return null;
+    return ServerConfigModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  Future<void> saveLastConfig(ServerConfigModel model) async {
+    await _storage.write(key: _lastKey, value: jsonEncode(model.toJson()));
   }
 }

@@ -157,7 +157,7 @@ dev_dependencies:
 
 ## Nextcloud Memories API
 
-Base URL: `https://{server}/index.php/apps/memories/api/v1`
+Base URL: `https://{server}/apps/memories/api`
 
 Endpoint principali:
 ```
@@ -191,12 +191,11 @@ Salvare credenziali in **Flutter Secure Storage**, mai in Hive o SharedPreferenc
 ## Ambiente di sviluppo
 
 ### JDK
-Usare **Temurin 21** (`/usr/lib/jvm/temurin-21-jdk`) installato via repo Adoptium.
-Configurato in `android/gradle.properties`:
+Usare **OpenJDK 21** (`/usr/lib/jvm/java-21-openjdk`).
+Configurato in `~/.gradle/gradle.properties` (user-level, non nel repo):
 ```properties
-org.gradle.java.home=/usr/lib/jvm/temurin-21-jdk
+org.gradle.java.home=/usr/lib/jvm/java-21-openjdk
 ```
-Il sistema ha Java 25 headless (solo JRE, senza `javac`) — non usarlo per Gradle.
 
 ### Emulatore Android
 `flutter run -d emulator-5554` — emulatore Android 17 (API 37).
@@ -228,3 +227,9 @@ Quando si aggiunge o modifica una feature, aggiornare il doc corrispondente in `
 - Nessuna logica di business nei widget/screen — tutto negli use case e provider
 - Commenti in inglese nel codice, documentazione di progetto in italiano
 - Quando aggiungi una dipendenza, aggiornare anche questo file nella sezione dipendenze
+
+### Ottimizzazioni obbligatorie (da applicare sempre)
+
+- **Dio non va mai ricreato come getter** — ogni datasource deve inizializzare `_dio` come `late final` con un metodo `_buildDio()`. Ricrearlo a ogni chiamata apre una nuova connessione TCP e azzera il connection reuse.
+- **Datasource come campo del notifier, non variabile locale** — nei Riverpod `AsyncNotifier`, istanziare il datasource una sola volta in `build` e salvarlo in un campo privato (`_ds`). Non ricostruirlo in ogni metodo.
+- **`ref.keepAlive()` sui provider con chiamate di rete costose** — se un provider fa chiamate di rete al primo load (es. fetch info + PROPFIND), aggiungere `ref.keepAlive()` in `build` per evitare che Riverpod lo disponga e lo ricostruisca a ogni navigazione.

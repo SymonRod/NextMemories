@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/server_config.dart';
 import '../../domain/usecases/get_credentials_use_case.dart';
+import '../../domain/usecases/get_last_config_use_case.dart';
 import '../../domain/usecases/save_credentials_use_case.dart';
 import '../../domain/usecases/validate_connection_use_case.dart';
 
@@ -25,10 +26,12 @@ class Auth extends _$Auth {
     required String appPassword,
   }) async {
     final cleanUrl = serverUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    final serverName = Uri.tryParse(cleanUrl)?.host;
     final config = ServerConfig(
       serverUrl: cleanUrl,
       username: username.trim(),
       appPassword: appPassword,
+      serverName: serverName,
     );
 
     final validation = await ValidateConnectionUseCase(_repo)(config);
@@ -42,7 +45,16 @@ class Auth extends _$Auth {
   }
 
   Future<void> logout() async {
+    final current = state.valueOrNull;
+    if (current != null) {
+      await _repo.saveLastConfig(current);
+    }
     await _repo.clearCredentials();
     state = const AsyncData(null);
+  }
+
+  Future<ServerConfig?> getLastConfig() async {
+    final result = await GetLastConfigUseCase(_repo)();
+    return result.fold((_) => null, (c) => c);
   }
 }

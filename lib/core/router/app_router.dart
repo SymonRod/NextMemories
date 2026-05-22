@@ -2,19 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/albums/presentation/screens/album_detail_screen.dart';
+import '../../features/albums/presentation/screens/album_viewer_screen.dart';
+import '../../features/albums/presentation/screens/albums_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/timeline/presentation/screens/timeline_screen.dart';
+import '../../features/viewer/presentation/screens/viewer_screen.dart';
 
-// Placeholder screens — verranno sostituiti dalle feature reali
-class _PlaceholderScreen extends StatelessWidget {
-  final String label;
-  const _PlaceholderScreen(this.label);
-
-  @override
-  Widget build(BuildContext context) =>
-      Scaffold(body: Center(child: Text(label)));
-}
 
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(Ref ref) {
@@ -44,16 +40,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth',
         builder: (context, state) => const LoginScreen(),
       ),
+      GoRoute(
+        path: '/viewer',
+        builder: (context, state) {
+          final dayId = int.parse(state.uri.queryParameters['dayId']!);
+          final index = int.parse(state.uri.queryParameters['index'] ?? '0');
+          return ViewerScreen(dayId: dayId, initialIndex: index);
+        },
+      ),
+      GoRoute(
+        path: '/album-detail',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AlbumDetailScreen(
+            clusterId: extra['clusterId'] as String,
+            albumName: extra['name'] as String,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/album-viewer',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return AlbumViewerScreen(
+            clusterId: extra['clusterId'] as String,
+            albumName: extra['albumName'] as String,
+            initialIndex: extra['index'] as int,
+          );
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) => _MainShell(child: child),
         routes: [
           GoRoute(
             path: '/timeline',
-            builder: (context, state) => const _PlaceholderScreen('Timeline'),
+            builder: (context, state) => const TimelineScreen(),
           ),
           GoRoute(
             path: '/albums',
-            builder: (context, state) => const _PlaceholderScreen('Albums'),
+            builder: (context, state) => const AlbumsScreen(),
           ),
           GoRoute(
             path: '/profile',

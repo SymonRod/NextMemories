@@ -11,6 +11,7 @@ class ServerConfigModel with _$ServerConfigModel {
     required String serverUrl,
     required String username,
     required String appPassword,
+    String? serverName,
   }) = _ServerConfigModel;
 
   factory ServerConfigModel.fromJson(Map<String, dynamic> json) =>
@@ -22,6 +23,7 @@ extension ServerConfigModelX on ServerConfigModel {
         serverUrl: serverUrl,
         username: username,
         appPassword: appPassword,
+        serverName: serverName,
       );
 }
 
@@ -30,5 +32,6 @@ extension ServerConfigX on ServerConfig {
         serverUrl: serverUrl,
         username: username,
         appPassword: appPassword,
+        serverName: serverName,
       );
 }

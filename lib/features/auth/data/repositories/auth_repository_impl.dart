@@ -49,6 +49,26 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<Either<Failure, ServerConfig?>> getLastConfig() async {
+    try {
+      final model = await _local.getLastConfig();
+      return Right(model?.toEntity());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> saveLastConfig(ServerConfig config) async {
+    try {
+      await _local.saveLastConfig(config.toModel());
+      return const Right(unit);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> validateConnection(ServerConfig config) async {
     try {
       final dio = Dio(BaseOptions(baseUrl: config.serverUrl));

@@ -21,6 +21,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _prefillLastConfig();
+  }
+
+  Future<void> _prefillLastConfig() async {
+    final last = await ref.read(authProvider.notifier).getLastConfig();
+    if (last != null && mounted) {
+      _serverUrlController.text = last.serverUrl;
+      _usernameController.text = last.username;
+      _passwordController.text = last.appPassword;
+    }
+  }
+
+  @override
   void dispose() {
     _serverUrlController.dispose();
     _usernameController.dispose();

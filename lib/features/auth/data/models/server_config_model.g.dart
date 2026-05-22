@@ -12,6 +12,7 @@ _$ServerConfigModelImpl _$$ServerConfigModelImplFromJson(
   serverUrl: json['serverUrl'] as String,
   username: json['username'] as String,
   appPassword: json['appPassword'] as String,
+  serverName: json['serverName'] as String?,
 );
 
 Map<String, dynamic> _$$ServerConfigModelImplToJson(
@@ -20,4 +21,5 @@ Map<String, dynamic> _$$ServerConfigModelImplToJson(
   'serverUrl': instance.serverUrl,
   'username': instance.username,
   'appPassword': instance.appPassword,
+  'serverName': instance.serverName,
 };

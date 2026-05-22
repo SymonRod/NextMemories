@@ -8,5 +8,6 @@ class ServerConfig with _$ServerConfig {
     required String serverUrl,
     required String username,
     required String appPassword,
+    String? serverName,
   }) = _ServerConfig;
 }

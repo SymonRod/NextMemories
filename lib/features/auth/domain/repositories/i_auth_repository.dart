@@ -8,4 +8,6 @@ abstract class IAuthRepository {
   Future<Either<Failure, Unit>> saveCredentials(ServerConfig config);
   Future<Either<Failure, Unit>> clearCredentials();
   Future<Either<Failure, Unit>> validateConnection(ServerConfig config);
+  Future<Either<Failure, ServerConfig?>> getLastConfig();
+  Future<Either<Failure, Unit>> saveLastConfig(ServerConfig config);
 }

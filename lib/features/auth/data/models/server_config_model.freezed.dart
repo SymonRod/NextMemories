@@ -24,6 +24,7 @@ mixin _$ServerConfigModel {
   String get serverUrl => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
   String get appPassword => throw _privateConstructorUsedError;
+  String? get serverName => throw _privateConstructorUsedError;
 
   /// Serializes this ServerConfigModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -42,7 +43,12 @@ abstract class $ServerConfigModelCopyWith<$Res> {
     $Res Function(ServerConfigModel) then,
   ) = _$ServerConfigModelCopyWithImpl<$Res, ServerConfigModel>;
   @useResult
-  $Res call({String serverUrl, String username, String appPassword});
+  $Res call({
+    String serverUrl,
+    String username,
+    String appPassword,
+    String? serverName,
+  });
 }
 
 /// @nodoc
@@ -63,6 +69,7 @@ class _$ServerConfigModelCopyWithImpl<$Res, $Val extends ServerConfigModel>
     Object? serverUrl = null,
     Object? username = null,
     Object? appPassword = null,
+    Object? serverName = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -78,6 +85,10 @@ class _$ServerConfigModelCopyWithImpl<$Res, $Val extends ServerConfigModel>
                 ? _value.appPassword
                 : appPassword // ignore: cast_nullable_to_non_nullable
                       as String,
+            serverName: freezed == serverName
+                ? _value.serverName
+                : serverName // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -93,7 +104,12 @@ abstract class _$$ServerConfigModelImplCopyWith<$Res>
   ) = __$$ServerConfigModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String serverUrl, String username, String appPassword});
+  $Res call({
+    String serverUrl,
+    String username,
+    String appPassword,
+    String? serverName,
+  });
 }
 
 /// @nodoc
@@ -113,6 +129,7 @@ class __$$ServerConfigModelImplCopyWithImpl<$Res>
     Object? serverUrl = null,
     Object? username = null,
     Object? appPassword = null,
+    Object? serverName = freezed,
   }) {
     return _then(
       _$ServerConfigModelImpl(
@@ -128,6 +145,10 @@ class __$$ServerConfigModelImplCopyWithImpl<$Res>
             ? _value.appPassword
             : appPassword // ignore: cast_nullable_to_non_nullable
                   as String,
+        serverName: freezed == serverName
+            ? _value.serverName
+            : serverName // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -140,6 +161,7 @@ class _$ServerConfigModelImpl implements _ServerConfigModel {
     required this.serverUrl,
     required this.username,
     required this.appPassword,
+    this.serverName,
   });
 
   factory _$ServerConfigModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -151,10 +173,12 @@ class _$ServerConfigModelImpl implements _ServerConfigModel {
   final String username;
   @override
   final String appPassword;
+  @override
+  final String? serverName;
 
   @override
   String toString() {
-    return 'ServerConfigModel(serverUrl: $serverUrl, username: $username, appPassword: $appPassword)';
+    return 'ServerConfigModel(serverUrl: $serverUrl, username: $username, appPassword: $appPassword, serverName: $serverName)';
   }
 
   @override
@@ -167,13 +191,15 @@ class _$ServerConfigModelImpl implements _ServerConfigModel {
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.appPassword, appPassword) ||
-                other.appPassword == appPassword));
+                other.appPassword == appPassword) &&
+            (identical(other.serverName, serverName) ||
+                other.serverName == serverName));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, serverUrl, username, appPassword);
+      Object.hash(runtimeType, serverUrl, username, appPassword, serverName);
 
   /// Create a copy of ServerConfigModel
   /// with the given fields replaced by the non-null parameter values.
@@ -197,6 +223,7 @@ abstract class _ServerConfigModel implements ServerConfigModel {
     required final String serverUrl,
     required final String username,
     required final String appPassword,
+    final String? serverName,
   }) = _$ServerConfigModelImpl;
 
   factory _ServerConfigModel.fromJson(Map<String, dynamic> json) =
@@ -208,6 +235,8 @@ abstract class _ServerConfigModel implements ServerConfigModel {
   String get username;
   @override
   String get appPassword;
+  @override
+  String? get serverName;
 
   /// Create a copy of ServerConfigModel
   /// with the given fields replaced by the non-null parameter values.
