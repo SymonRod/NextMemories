@@ -29,3 +29,7 @@ flutter pub run build_runner build --delete-conflicting-outputs
 ## Stack
 
 Flutter · Riverpod · GoRouter · Dio · Drift · Freezed
+
+---
+
+> NextMemories is an unofficial client and is not affiliated with Nextcloud GmbH or the [Nextcloud Memories](https://memories.gallery) project.
