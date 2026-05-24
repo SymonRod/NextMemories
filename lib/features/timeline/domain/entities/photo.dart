@@ -16,5 +16,6 @@ class Photo with _$Photo {
     String? auid,
     @Default(false) bool isVideo,
     @Default(false) bool isFavorite,
+    @Default(null) String? localPath,
   }) = _Photo;
 }

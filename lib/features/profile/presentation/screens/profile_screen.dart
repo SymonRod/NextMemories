@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
@@ -90,6 +91,16 @@ class _ProfileBody extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _QuotaCard(quota: info.quota),
+        const SizedBox(height: 12),
+        Card.outlined(
+          child: ListTile(
+            leading: const Icon(Icons.cloud_sync_outlined),
+            title: const Text('Sincronizzazione offline'),
+            subtitle: const Text('Gestisci foto disponibili senza connessione'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/sync-settings'),
+          ),
+        ),
         const SizedBox(height: 40),
         FilledButton.icon(
           onPressed: onLogout,

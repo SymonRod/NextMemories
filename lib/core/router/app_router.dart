@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/albums/presentation/screens/album_detail_screen.dart';
+import '../../features/sync/presentation/screens/sync_settings_screen.dart';
 import '../../features/albums/presentation/screens/album_viewer_screen.dart';
 import '../../features/albums/presentation/screens/albums_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -47,6 +48,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final index = int.parse(state.uri.queryParameters['index'] ?? '0');
           return ViewerScreen(dayId: dayId, initialIndex: index);
         },
+      ),
+      GoRoute(
+        path: '/sync-settings',
+        builder: (context, state) => const SyncSettingsScreen(),
       ),
       GoRoute(
         path: '/album-detail',

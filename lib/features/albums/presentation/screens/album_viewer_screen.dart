@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/memories_api.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../viewer/presentation/providers/favorite_provider.dart';
+import '../../../viewer/presentation/widgets/photo_page.dart';
 import '../providers/albums_provider.dart';
 
 class AlbumViewerScreen extends ConsumerStatefulWidget {
@@ -30,6 +32,7 @@ class _AlbumViewerScreenState extends ConsumerState<AlbumViewerScreen> {
   late final PageController _pageController;
   late int _currentIndex;
   bool _showUi = true;
+  bool _isZoomed = false;
 
   @override
   void initState() {
@@ -47,6 +50,10 @@ class _AlbumViewerScreenState extends ConsumerState<AlbumViewerScreen> {
   }
 
   void _toggleUi() => setState(() => _showUi = !_showUi);
+
+  void _onZoomChanged(bool zoomed) {
+    if (_isZoomed != zoomed) setState(() => _isZoomed = zoomed);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,66 +80,81 @@ class _AlbumViewerScreenState extends ConsumerState<AlbumViewerScreen> {
               PageView.builder(
                 controller: _pageController,
                 itemCount: photos.length,
-                onPageChanged: (i) => setState(() => _currentIndex = i),
+                physics: _isZoomed ? const NeverScrollableScrollPhysics() : null,
+                onPageChanged: (i) => setState(() {
+                  _currentIndex = i;
+                  _isZoomed = false;
+                }),
                 itemBuilder: (context, index) {
                   final p = photos[index];
-                  final url =
-                      '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 1920, y: 1920)}';
-                  return GestureDetector(
-                    onTap: _toggleUi,
-                    child: InteractiveViewer(
-                      minScale: 1,
-                      maxScale: 5,
-                      child: Center(
-                        child: CachedNetworkImage(
-                          imageUrl: url,
-                          httpHeaders: {'Authorization': 'Basic $credentials'},
-                          fit: BoxFit.contain,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(
-                                color: Colors.white54),
-                          ),
-                          errorWidget: (context, url, err) => const Icon(
-                            Icons.broken_image_rounded,
-                            color: Colors.white54,
-                            size: 48,
-                          ),
-                        ),
+                  final Widget imageWidget;
+                  if (p.localPath != null) {
+                    imageWidget = Image.file(
+                      File(p.localPath!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white54,
+                        size: 48,
                       ),
-                    ),
+                    );
+                  } else {
+                    final url =
+                        '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 1920, y: 1920)}';
+                    imageWidget = CachedNetworkImage(
+                      imageUrl: url,
+                      httpHeaders: {'Authorization': 'Basic $credentials'},
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => const Center(
+                        child: CircularProgressIndicator(color: Colors.white54),
+                      ),
+                      errorWidget: (_, __, ___) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                    );
+                  }
+                  return PhotoPage(
+                    key: ValueKey(p.fileId),
+                    imageWidget: imageWidget,
+                    onTap: _toggleUi,
+                    onZoomChanged: _onZoomChanged,
                   );
                 },
               ),
               AnimatedOpacity(
                 opacity: _showUi ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Column(
-                  children: [
-                    AppBar(
-                      backgroundColor: Colors.black54,
-                      foregroundColor: Colors.white,
-                      title: Text(
-                        photo.basename,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
+                child: IgnorePointer(
+                  ignoring: !_showUi,
+                  child: Column(
+                    children: [
+                      AppBar(
+                        backgroundColor: Colors.black54,
+                        foregroundColor: Colors.white,
+                        title: Text(
+                          photo.basename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        actions: [
+                          _FavoriteButton(fileId: photo.fileId),
+                        ],
                       ),
-                      actions: [
-                        _FavoriteButton(fileId: photo.fileId),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      color: Colors.black54,
-                      child: Text(
-                        '${_currentIndex + 1} / ${photos.length}',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
-                        textAlign: TextAlign.center,
+                      const Spacer(),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        color: Colors.black54,
+                        child: Text(
+                          '${_currentIndex + 1} / ${photos.length}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -157,19 +179,16 @@ class _FavoriteButton extends ConsumerWidget {
         child: SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Colors.white54),
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
         ),
       ),
-      error: (e, _) =>
-          const Icon(Icons.star_border_rounded, color: Colors.white54),
+      error: (e, _) => const Icon(Icons.star_border_rounded, color: Colors.white54),
       data: (isFavorite) => IconButton(
         icon: Icon(
           isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
           color: isFavorite ? Colors.amber : Colors.white,
         ),
-        onPressed: () =>
-            ref.read(favoriteProvider(fileId).notifier).toggle(fileId),
+        onPressed: () => ref.read(favoriteProvider(fileId).notifier).toggle(fileId),
       ),
     );
   }

@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/cache/photo_metadata_cache.dart';
 import '../../data/repositories/profile_repository_impl.dart';
 import '../../domain/entities/user_info.dart';
 import '../../domain/usecases/get_user_info_use_case.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 part 'profile_provider.g.dart';
+
+final _profileCache = PhotoMetadataCache();
 
 @riverpod
 Future<UserInfo> userInfo(Ref ref) async {
@@ -15,7 +18,14 @@ Future<UserInfo> userInfo(Ref ref) async {
   final repo = ProfileRepositoryImpl.fromConfig(config);
   final result = await GetUserInfoUseCase(repo)();
   return result.fold(
-    (failure) => throw Exception(failure.message),
-    (info) => info,
+    (failure) async {
+      final cached = await _profileCache.getUserInfo();
+      if (cached != null) return cached;
+      throw Exception(failure.message);
+    },
+    (info) async {
+      await _profileCache.saveUserInfo(info);
+      return info;
+    },
   );
 }

@@ -28,6 +28,7 @@ mixin _$Photo {
   String? get auid => throw _privateConstructorUsedError;
   bool get isVideo => throw _privateConstructorUsedError;
   bool get isFavorite => throw _privateConstructorUsedError;
+  String? get localPath => throw _privateConstructorUsedError;
 
   /// Create a copy of Photo
   /// with the given fields replaced by the non-null parameter values.
@@ -52,6 +53,7 @@ abstract class $PhotoCopyWith<$Res> {
     String? auid,
     bool isVideo,
     bool isFavorite,
+    String? localPath,
   });
 }
 
@@ -81,6 +83,7 @@ class _$PhotoCopyWithImpl<$Res, $Val extends Photo>
     Object? auid = freezed,
     Object? isVideo = null,
     Object? isFavorite = null,
+    Object? localPath = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -128,6 +131,10 @@ class _$PhotoCopyWithImpl<$Res, $Val extends Photo>
                 ? _value.isFavorite
                 : isFavorite // ignore: cast_nullable_to_non_nullable
                       as bool,
+            localPath: freezed == localPath
+                ? _value.localPath
+                : localPath // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -154,6 +161,7 @@ abstract class _$$PhotoImplCopyWith<$Res> implements $PhotoCopyWith<$Res> {
     String? auid,
     bool isVideo,
     bool isFavorite,
+    String? localPath,
   });
 }
 
@@ -182,6 +190,7 @@ class __$$PhotoImplCopyWithImpl<$Res>
     Object? auid = freezed,
     Object? isVideo = null,
     Object? isFavorite = null,
+    Object? localPath = freezed,
   }) {
     return _then(
       _$PhotoImpl(
@@ -229,6 +238,10 @@ class __$$PhotoImplCopyWithImpl<$Res>
             ? _value.isFavorite
             : isFavorite // ignore: cast_nullable_to_non_nullable
                   as bool,
+        localPath: freezed == localPath
+            ? _value.localPath
+            : localPath // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -249,6 +262,7 @@ class _$PhotoImpl implements _Photo {
     this.auid,
     this.isVideo = false,
     this.isFavorite = false,
+    this.localPath = null,
   });
 
   @override
@@ -275,10 +289,13 @@ class _$PhotoImpl implements _Photo {
   @override
   @JsonKey()
   final bool isFavorite;
+  @override
+  @JsonKey()
+  final String? localPath;
 
   @override
   String toString() {
-    return 'Photo(fileId: $fileId, dayId: $dayId, basename: $basename, epoch: $epoch, mimetype: $mimetype, width: $width, height: $height, etag: $etag, auid: $auid, isVideo: $isVideo, isFavorite: $isFavorite)';
+    return 'Photo(fileId: $fileId, dayId: $dayId, basename: $basename, epoch: $epoch, mimetype: $mimetype, width: $width, height: $height, etag: $etag, auid: $auid, isVideo: $isVideo, isFavorite: $isFavorite, localPath: $localPath)';
   }
 
   @override
@@ -299,7 +316,9 @@ class _$PhotoImpl implements _Photo {
             (identical(other.auid, auid) || other.auid == auid) &&
             (identical(other.isVideo, isVideo) || other.isVideo == isVideo) &&
             (identical(other.isFavorite, isFavorite) ||
-                other.isFavorite == isFavorite));
+                other.isFavorite == isFavorite) &&
+            (identical(other.localPath, localPath) ||
+                other.localPath == localPath));
   }
 
   @override
@@ -316,6 +335,7 @@ class _$PhotoImpl implements _Photo {
     auid,
     isVideo,
     isFavorite,
+    localPath,
   );
 
   /// Create a copy of Photo
@@ -340,6 +360,7 @@ abstract class _Photo implements Photo {
     final String? auid,
     final bool isVideo,
     final bool isFavorite,
+    final String? localPath,
   }) = _$PhotoImpl;
 
   @override
@@ -364,6 +385,8 @@ abstract class _Photo implements Photo {
   bool get isVideo;
   @override
   bool get isFavorite;
+  @override
+  String? get localPath;
 
   /// Create a copy of Photo
   /// with the given fields replaced by the non-null parameter values.

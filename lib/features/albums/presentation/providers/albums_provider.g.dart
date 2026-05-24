@@ -23,7 +23,7 @@ final albumsProvider = AutoDisposeFutureProvider<List<Album>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AlbumsRef = AutoDisposeFutureProviderRef<List<Album>>;
-String _$albumPhotosHash() => r'01ed02e8b18563a9e4dc5581a8e3c10aa43ed420';
+String _$albumPhotosHash() => r'3df48f7f80779261fb5f1bc243aab46fa1b313fa';
 
 /// Copied from Dart SDK
 class _SystemHash {

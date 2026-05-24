@@ -14,6 +14,7 @@ App mobile Flutter per sfogliare, sincronizzare e visualizzare foto da Nextcloud
 | [Feature: Timeline](features/timeline.md) | Griglia foto per giorno, lazy load |
 | [Feature: Viewer](features/viewer.md) | Fullscreen, zoom, swipe, preferiti |
 | [Feature: Album](features/albums.md) | Lista album, griglia foto, viewer |
+| [Feature: Sync](features/sync.md) | Cache offline per album e time range |
 
 ## Stato feature
 
@@ -23,7 +24,7 @@ App mobile Flutter per sfogliare, sincronizzare e visualizzare foto da Nextcloud
 | Profile | Completa | |
 | Timeline | Completa (online-only) | Cache offline pianificata in Sync |
 | Viewer | Completa | Zoom/swipe e preferiti funzionanti |
-| Sync | Da implementare | Cache offline + impostazioni sync |
+| Sync | In sviluppo | Backend completo (schema, domain, data layer, test); manca la presentation (provider + UI) — vedi [sync.md](features/sync.md) |
 | Album | Completa (online-only) | Griglia, dettaglio, viewer con preferiti |
 | MediaStore | Da implementare | |
 | Widget Android | Da implementare | |

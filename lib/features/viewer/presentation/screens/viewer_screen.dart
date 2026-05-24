@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../../../core/api/memories_api.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../timeline/presentation/providers/timeline_provider.dart';
 import '../providers/favorite_provider.dart';
+import '../widgets/photo_page.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
   final int dayId;
@@ -28,6 +30,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   late final PageController _pageController;
   late int _currentIndex;
   bool _showUi = true;
+  bool _isZoomed = false;
 
   @override
   void initState() {
@@ -45,6 +48,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   void _toggleUi() => setState(() => _showUi = !_showUi);
+
+  void _onZoomChanged(bool zoomed) {
+    if (_isZoomed != zoomed) setState(() => _isZoomed = zoomed);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,64 +78,81 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               PageView.builder(
                 controller: _pageController,
                 itemCount: photos.length,
-                onPageChanged: (i) => setState(() => _currentIndex = i),
+                physics: _isZoomed ? const NeverScrollableScrollPhysics() : null,
+                onPageChanged: (i) => setState(() {
+                  _currentIndex = i;
+                  _isZoomed = false;
+                }),
                 itemBuilder: (context, index) {
                   final p = photos[index];
-                  final url =
-                      '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 1920, y: 1920)}';
-                  return GestureDetector(
-                    onTap: _toggleUi,
-                    child: InteractiveViewer(
-                      minScale: 1,
-                      maxScale: 5,
-                      child: Center(
-                        child: CachedNetworkImage(
-                          imageUrl: url,
-                          httpHeaders: {'Authorization': 'Basic $credentials'},
-                          fit: BoxFit.contain,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(color: Colors.white54),
-                          ),
-                          errorWidget: (context, url, err) => const Icon(
-                            Icons.broken_image_rounded,
-                            color: Colors.white54,
-                            size: 48,
-                          ),
-                        ),
+                  final Widget imageWidget;
+                  if (p.localPath != null) {
+                    imageWidget = Image.file(
+                      File(p.localPath!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white54,
+                        size: 48,
                       ),
-                    ),
+                    );
+                  } else {
+                    final url =
+                        '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 1920, y: 1920)}';
+                    imageWidget = CachedNetworkImage(
+                      imageUrl: url,
+                      httpHeaders: {'Authorization': 'Basic $credentials'},
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => const Center(
+                        child: CircularProgressIndicator(color: Colors.white54),
+                      ),
+                      errorWidget: (_, __, ___) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                    );
+                  }
+                  return PhotoPage(
+                    key: ValueKey(p.fileId),
+                    imageWidget: imageWidget,
+                    onTap: _toggleUi,
+                    onZoomChanged: _onZoomChanged,
                   );
                 },
               ),
               AnimatedOpacity(
                 opacity: _showUi ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Column(
-                  children: [
-                    AppBar(
-                      backgroundColor: Colors.black54,
-                      foregroundColor: Colors.white,
-                      title: Text(
-                        photo.basename,
-                        style: const TextStyle(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
+                child: IgnorePointer(
+                  ignoring: !_showUi,
+                  child: Column(
+                    children: [
+                      AppBar(
+                        backgroundColor: Colors.black54,
+                        foregroundColor: Colors.white,
+                        title: Text(
+                          photo.basename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        actions: [
+                          _FavoriteButton(fileId: photo.fileId),
+                        ],
                       ),
-                      actions: [
-                        _FavoriteButton(fileId: photo.fileId),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      color: Colors.black54,
-                      child: Text(
-                        '${_currentIndex + 1} / ${photos.length}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                        textAlign: TextAlign.center,
+                      const Spacer(),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        color: Colors.black54,
+                        child: Text(
+                          '${_currentIndex + 1} / ${photos.length}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

@@ -23,7 +23,7 @@ final timelineDaysProvider = AutoDisposeFutureProvider<List<PhotoDay>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TimelineDaysRef = AutoDisposeFutureProviderRef<List<PhotoDay>>;
-String _$dayPhotosHash() => r'f5791d5be6cb1c905de6d3d01f43b7230ffcc587';
+String _$dayPhotosHash() => r'32671587978bfffeb8d80d2f4f93b4166afd8de6';
 
 /// Copied from Dart SDK
 class _SystemHash {

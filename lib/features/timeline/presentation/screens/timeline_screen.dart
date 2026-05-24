@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -133,34 +134,39 @@ class _PhotoTile extends ConsumerWidget {
     final config = ref.watch(authProvider).valueOrNull;
     if (config == null) return const SizedBox.shrink();
 
-    final credentials = base64Encode(
-      utf8.encode('${config.username}:${config.appPassword}'),
-    );
-    final url = '${config.serverUrl}${MemoriesApi.photoPreview(
-      photo.fileId,
-      etag: photo.etag ?? '',
-      x: 512,
-      y: 512,
-    )}';
+    final Widget imageWidget;
+    if (photo.localPath != null) {
+      imageWidget = Image.file(
+        File(photo.localPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: Theme.of(context).colorScheme.errorContainer,
+          child: Icon(Icons.broken_image_rounded,
+              color: Theme.of(context).colorScheme.onErrorContainer, size: 24),
+        ),
+      );
+    } else {
+      final credentials =
+          base64Encode(utf8.encode('${config.username}:${config.appPassword}'));
+      final url =
+          '${config.serverUrl}${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 512, y: 512)}';
+      imageWidget = CachedNetworkImage(
+        imageUrl: url,
+        httpHeaders: {'Authorization': 'Basic $credentials'},
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest),
+        errorWidget: (_, __, ___) => Container(
+          color: Theme.of(context).colorScheme.errorContainer,
+          child: Icon(Icons.broken_image_rounded,
+              color: Theme.of(context).colorScheme.onErrorContainer, size: 24),
+        ),
+      );
+    }
 
     return GestureDetector(
       onTap: () => context.push('/viewer?dayId=$dayId&index=$index'),
-      child: CachedNetworkImage(
-      imageUrl: url,
-      httpHeaders: {'Authorization': 'Basic $credentials'},
-      fit: BoxFit.cover,
-      placeholder: (context2, url) => Container(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      errorWidget: (context2, url, err) => Container(
-        color: Theme.of(context).colorScheme.errorContainer,
-        child: Icon(
-          Icons.broken_image_rounded,
-          color: Theme.of(context).colorScheme.onErrorContainer,
-          size: 24,
-        ),
-      ),
-      ),
+      child: imageWidget,
     );
   }
 }
