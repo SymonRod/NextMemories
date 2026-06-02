@@ -15,6 +15,9 @@ abstract class ISyncRepository {
 
   Future<Either<Failure, String?>> getLocalPath(int fileId);
 
+  /// Local file paths of all cached photos belonging to [ruleId].
+  Future<Either<Failure, List<String>>> getLocalPhotoPathsForRule(int ruleId);
+
   Future<Either<Failure, ({int fileCount, int sizeBytes})>> getCacheStatsForRule(int ruleId);
 
   Future<Either<Failure, int>> getTotalCacheBytes();

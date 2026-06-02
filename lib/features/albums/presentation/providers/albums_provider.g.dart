@@ -6,7 +6,7 @@ part of 'albums_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$albumsHash() => r'586be87b2fc57fadbb43726603757899a9710740';
+String _$albumsHash() => r'902822491d8963c00349a575dce1326b13ec0d69';
 
 /// See also [albums].
 @ProviderFor(albums)
@@ -23,7 +23,7 @@ final albumsProvider = AutoDisposeFutureProvider<List<Album>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AlbumsRef = AutoDisposeFutureProviderRef<List<Album>>;
-String _$albumPhotosHash() => r'3df48f7f80779261fb5f1bc243aab46fa1b313fa';
+String _$albumPhotosHash() => r'fbb76862596ca74b4e3b48db4a85fa52f4a2bf35';
 
 /// Copied from Dart SDK
 class _SystemHash {

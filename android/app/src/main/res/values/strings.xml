@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="album_widget_label">Album NextMemories</string>
+    <string name="album_widget_empty">Scegli un album da mostrare nell\'app</string>
+    <string name="album_widget_image_desc">Foto dell\'album sincronizzato</string>
+</resources>

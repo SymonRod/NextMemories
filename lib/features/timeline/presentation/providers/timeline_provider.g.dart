@@ -6,7 +6,7 @@ part of 'timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$timelineDaysHash() => r'3eb07e46e1d657e5fc644a3cef64f28611298088';
+String _$timelineDaysHash() => r'40a92318ed8a8e1303c89cf7b91f6a1ce6bcb731';
 
 /// See also [timelineDays].
 @ProviderFor(timelineDays)
@@ -23,7 +23,7 @@ final timelineDaysProvider = AutoDisposeFutureProvider<List<PhotoDay>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TimelineDaysRef = AutoDisposeFutureProviderRef<List<PhotoDay>>;
-String _$dayPhotosHash() => r'32671587978bfffeb8d80d2f4f93b4166afd8de6';
+String _$dayPhotosHash() => r'ba299c1b428e10db0008a85f69b57cab377b8acf';
 
 /// Copied from Dart SDK
 class _SystemHash {

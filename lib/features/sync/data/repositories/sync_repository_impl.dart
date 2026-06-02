@@ -206,6 +206,21 @@ class SyncRepositoryImpl implements ISyncRepository {
   }
 
   @override
+  Future<Either<Failure, List<String>>> getLocalPhotoPathsForRule(int ruleId) async {
+    try {
+      final entries = await _local.getCacheEntriesForRule(ruleId);
+      // Dedupe by fileId (a photo may be cached as both preview and original).
+      final byFileId = <int, String>{};
+      for (final e in entries) {
+        byFileId.putIfAbsent(e.fileId, () => e.localPath);
+      }
+      return Right(byFileId.values.toList());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, ({int fileCount, int sizeBytes})>> getCacheStatsForRule(int ruleId) async {
     try {
       return Right(await _local.getCacheStatsForRule(ruleId));

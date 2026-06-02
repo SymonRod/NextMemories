@@ -7,7 +7,7 @@ part of 'sync_progress_provider.dart';
 // **************************************************************************
 
 String _$syncProgressNotifierHash() =>
-    r'418f6572885ac623cf438aeb9dd4958fe241bb39';
+    r'b5491061a3a3c7e68aa013d1d21b3e2f5e87ffb7';
 
 /// See also [SyncProgressNotifier].
 @ProviderFor(SyncProgressNotifier)
