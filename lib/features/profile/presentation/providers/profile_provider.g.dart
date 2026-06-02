@@ -6,11 +6,11 @@ part of 'profile_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$userInfoHash() => r'cd775ed9eac2fa9a06b29cfc915c3f774c756321';
+String _$userInfoHash() => r'5199978324201da3ae5bd44d92f9fd54fd838fa0';
 
 /// See also [userInfo].
 @ProviderFor(userInfo)
-final userInfoProvider = AutoDisposeFutureProvider<UserInfo>.internal(
+final userInfoProvider = AutoDisposeStreamProvider<UserInfo>.internal(
   userInfo,
   name: r'userInfoProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -22,6 +22,6 @@ final userInfoProvider = AutoDisposeFutureProvider<UserInfo>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef UserInfoRef = AutoDisposeFutureProviderRef<UserInfo>;
+typedef UserInfoRef = AutoDisposeStreamProviderRef<UserInfo>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

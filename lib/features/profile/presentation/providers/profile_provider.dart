@@ -12,20 +12,28 @@ part 'profile_provider.g.dart';
 final _profileCache = PhotoMetadataCache();
 
 @riverpod
-Future<UserInfo> userInfo(Ref ref) async {
+Stream<UserInfo> userInfo(Ref ref) async* {
   final config = ref.watch(authProvider).valueOrNull;
-  if (config == null) throw Exception('Not authenticated');
+
+  // 1. Stale: mostra subito le info utente in cache, se presenti.
+  final cached = await _profileCache.getUserInfo();
+  if (cached != null) yield cached;
+
+  if (config == null) {
+    if (cached != null) return;
+    throw Exception('Not authenticated');
+  }
+
+  // 2. Revalidate: aggiorna dal server e ri-emetti solo se cambia qualcosa.
   final repo = ProfileRepositoryImpl.fromConfig(config);
   final result = await GetUserInfoUseCase(repo)();
-  return result.fold(
-    (failure) async {
-      final cached = await _profileCache.getUserInfo();
-      if (cached != null) return cached;
-      throw Exception(failure.message);
+  yield* result.fold(
+    (failure) async* {
+      if (cached == null) throw Exception(failure.message);
     },
-    (info) async {
-      await _profileCache.saveUserInfo(info);
-      return info;
+    (fresh) async* {
+      await _profileCache.saveUserInfo(fresh);
+      if (fresh != cached) yield fresh;
     },
   );
 }

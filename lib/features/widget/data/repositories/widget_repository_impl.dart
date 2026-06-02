@@ -62,32 +62,60 @@ class WidgetRepositoryImpl implements IWidgetRepository {
   @override
   Future<Either<Failure, Unit>> refreshWidget() async {
     try {
+      final configuredWidgetIds = await _homeWidget.getConfiguredWidgetIds();
+      if (configuredWidgetIds.isNotEmpty) {
+        for (final widgetId in configuredWidgetIds) {
+          final config = await _homeWidget.getConfigForWidget(widgetId);
+          if (config == null) {
+            await _homeWidget.clearData(appWidgetId: widgetId);
+            await _homeWidget.removeConfiguredWidgetId(widgetId);
+            continue;
+          }
+
+          final updated = await _refreshSingle(config, appWidgetId: widgetId);
+          if (!updated) {
+            await _homeWidget.clearData(appWidgetId: widgetId);
+          }
+        }
+        await _homeWidget.update();
+        return const Right(unit);
+      }
+
       final config = await _local.getPinnedAlbum();
       if (config == null) {
         await _clearWidget();
         return const Right(unit);
       }
 
-      final pathsResult = await _sync.getLocalPhotoPathsForRule(config.ruleId);
-      final paths = pathsResult.getOrElse((_) => <String>[]);
-      // Keep only files still present on disk.
-      final existing = paths.where((p) => File(p).existsSync()).toList();
-      if (existing.isEmpty) {
+      final updated = await _refreshSingle(config);
+      if (!updated) {
         await _clearWidget();
         return const Right(unit);
       }
 
-      final pick = existing[_random.nextInt(existing.length)];
-      await _homeWidget.setData(
-        imagePath: pick,
-        albumName: config.albumName,
-        clusterId: config.clusterId,
-      );
       await _homeWidget.update();
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }
+  }
+
+  Future<bool> _refreshSingle(WidgetAlbumConfig config, {int? appWidgetId}) async {
+    final pathsResult = await _sync.getLocalPhotoPathsForRule(config.ruleId);
+    final paths = pathsResult.getOrElse((_) => <String>[]);
+    // Keep only files still present on disk.
+    final existing = paths.where((p) => File(p).existsSync()).toList();
+    if (existing.isEmpty) return false;
+
+    final pick = existing[_random.nextInt(existing.length)];
+    await _homeWidget.setData(
+      imagePath: pick,
+      albumName: config.albumName,
+      clusterId: config.clusterId,
+      ruleId: config.ruleId,
+      appWidgetId: appWidgetId,
+    );
+    return true;
   }
 
   Future<void> _clearWidget() async {

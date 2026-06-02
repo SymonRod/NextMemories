@@ -15,6 +15,7 @@ App mobile Flutter per sfogliare, sincronizzare e visualizzare foto da Nextcloud
 | [Feature: Viewer](features/viewer.md) | Fullscreen, zoom, swipe, preferiti |
 | [Feature: Album](features/albums.md) | Lista album, griglia foto, viewer |
 | [Feature: Sync](features/sync.md) | Cache offline per album e time range |
+| [Feature: Widget Album](features/widget_album.md) | Widget homescreen "cornice digitale" di un album sincronizzato |
 
 ## Stato feature
 
@@ -24,7 +25,7 @@ App mobile Flutter per sfogliare, sincronizzare e visualizzare foto da Nextcloud
 | Profile | Completa | |
 | Timeline | Completa (online-only) | Cache offline pianificata in Sync |
 | Viewer | Completa | Zoom/swipe e preferiti funzionanti |
-| Sync | In sviluppo | Backend completo (schema, domain, data layer, test); manca la presentation (provider + UI) — vedi [sync.md](features/sync.md) |
+| Sync | Completa | Regole album/time range, download selettivo, banner di progresso — vedi [sync.md](features/sync.md) |
 | Album | Completa (online-only) | Griglia, dettaglio, viewer con preferiti |
 | MediaStore | Da implementare | |
-| Widget Android | Da implementare | |
+| Widget Android | MVP + F1 completi | Widget "cornice digitale" album: picker album con thumbnail, configurazione per-istanza, long-press per cambiare album, deep link al tap, refresh automatico — vedi [widget_album.md](features/widget_album.md). Follow-up: tap-to-shuffle (F2), refresh periodico WorkManager (F3) |

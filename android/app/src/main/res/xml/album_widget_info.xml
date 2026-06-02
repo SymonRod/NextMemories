@@ -4,6 +4,8 @@
     android:minHeight="110dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
+    android:configure="com.simonerodino.next_memories.widgets.AlbumWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/album_widget"
     android:previewLayout="@layout/album_widget"

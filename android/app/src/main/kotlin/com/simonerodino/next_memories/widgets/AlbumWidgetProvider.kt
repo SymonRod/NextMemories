@@ -29,11 +29,17 @@ class AlbumWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences
     ) {
-        val imagePath = widgetData.getString(KEY_IMAGE_PATH, null)
-        val albumName = widgetData.getString(KEY_ALBUM_NAME, null)
-        val clusterId = widgetData.getString(KEY_CLUSTER_ID, null)
-
         appWidgetIds.forEach { widgetId ->
+            val imagePath =
+                widgetData.getString(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_IMAGE_PATH, widgetId), null)
+                    ?: widgetData.getString(AlbumWidgetStorage.KEY_IMAGE_PATH, null)
+            val albumName =
+                widgetData.getString(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_ALBUM_NAME, widgetId), null)
+                    ?: widgetData.getString(AlbumWidgetStorage.KEY_ALBUM_NAME, null)
+            val clusterId =
+                widgetData.getString(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_CLUSTER_ID, widgetId), null)
+                    ?: widgetData.getString(AlbumWidgetStorage.KEY_CLUSTER_ID, null)
+
             val views = RemoteViews(context.packageName, R.layout.album_widget)
 
             val bitmap = imagePath?.let { decodeSampledBitmap(it, TARGET_SIZE, TARGET_SIZE) }
@@ -67,6 +73,29 @@ class AlbumWidgetProvider : HomeWidgetProvider() {
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+
+        val prefs = context.getSharedPreferences(AlbumWidgetStorage.PREFS_NAME, Context.MODE_PRIVATE)
+        val ids = AlbumWidgetStorage.parseWidgetIds(
+            prefs.getString(AlbumWidgetStorage.KEY_CONFIGURED_WIDGET_IDS, "")
+        )
+
+        val editor = prefs.edit()
+        appWidgetIds.forEach { widgetId ->
+            ids.remove(widgetId)
+            editor.remove(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_IMAGE_PATH, widgetId))
+            editor.remove(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_ALBUM_NAME, widgetId))
+            editor.remove(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_CLUSTER_ID, widgetId))
+            editor.remove(AlbumWidgetStorage.scoped(AlbumWidgetStorage.KEY_RULE_ID, widgetId))
+        }
+        editor.putString(
+            AlbumWidgetStorage.KEY_CONFIGURED_WIDGET_IDS,
+            AlbumWidgetStorage.serializeWidgetIds(ids),
+        )
+        editor.apply()
     }
 
     private fun decodeSampledBitmap(path: String, reqWidth: Int, reqHeight: Int): Bitmap? {
@@ -108,10 +137,5 @@ class AlbumWidgetProvider : HomeWidgetProvider() {
 
     companion object {
         private const val TARGET_SIZE = 512
-
-        // Must match the keys in HomeWidgetDatasource on the Flutter side.
-        private const val KEY_IMAGE_PATH = "album_widget_image_path"
-        private const val KEY_ALBUM_NAME = "album_widget_album_name"
-        private const val KEY_CLUSTER_ID = "album_widget_cluster_id"
     }
 }

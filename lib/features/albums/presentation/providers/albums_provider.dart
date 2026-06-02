@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -18,21 +19,32 @@ part 'albums_provider.g.dart';
 final _albumMetadataCache = PhotoMetadataCache();
 
 @riverpod
-Future<List<Album>> albums(Ref ref) async {
+Stream<List<Album>> albums(Ref ref) async* {
   final config = ref.watch(authProvider).valueOrNull;
-  if (config == null) throw Exception('Not authenticated');
+
+  // 1. Stale: mostra subito la cache locale, se presente (nessuna attesa di rete).
+  final cached = await _albumMetadataCache.getAlbums();
+  if (cached != null) yield cached;
+
+  // Senza auth non possiamo rivalidare: teniamo la cache se c'è, altrimenti errore.
+  if (config == null) {
+    if (cached != null) return;
+    throw Exception('Not authenticated');
+  }
+
+  // 2. Revalidate: interroga il server in background e aggiorna solo se cambia qualcosa.
   final repo = AlbumsRepositoryImpl.fromConfig(config);
   final result = await GetAlbumsUseCase(repo)();
-  return result.fold(
-    (failure) async {
-      final cached = await _albumMetadataCache.getAlbums();
-      if (cached != null) return cached;
-      throw Exception(failure.message);
+  yield* result.fold(
+    (failure) async* {
+      // Server non raggiungibile: se abbiamo già mostrato la cache, restiamo su quella.
+      if (cached == null) throw Exception(failure.message);
     },
-    (albums) async {
-      await _albumMetadataCache.saveAlbums(albums);
-      unawaited(_prefetchAllAlbumPhotos(config, albums));
-      return albums;
+    (fresh) async* {
+      await _albumMetadataCache.saveAlbums(fresh);
+      unawaited(_prefetchAllAlbumPhotos(config, fresh));
+      // Evita un rebuild inutile (e il flicker delle cover) se nulla è cambiato.
+      if (!listEquals(cached, fresh)) yield fresh;
     },
   );
 }
@@ -55,23 +67,35 @@ Future<void> _prefetchAllAlbumPhotos(ServerConfig config, List<Album> albums) as
 }
 
 @riverpod
-Future<List<Photo>> albumPhotos(Ref ref, String clusterId) async {
+Stream<List<Photo>> albumPhotos(Ref ref, String clusterId) async* {
   ref.keepAlive();
   final config = ref.watch(authProvider).valueOrNull;
-  if (config == null) throw Exception('Not authenticated');
+
+  // 1. Stale: mostra subito le foto in cache (arricchite con i path locali).
+  final cached = await _albumMetadataCache.getPhotosForAlbum(clusterId);
+  if (cached != null) yield await _withLocalPaths(ref, cached);
+
+  if (config == null) {
+    if (cached != null) return;
+    throw Exception('Not authenticated');
+  }
+
+  // 2. Revalidate: aggiorna dal server e ri-emetti solo se la lista è cambiata.
   final repo = AlbumsRepositoryImpl.fromConfig(config);
   final result = await GetAlbumPhotosUseCase(repo)(clusterId);
-  final photos = await result.fold(
-    (failure) async {
-      final cached = await _albumMetadataCache.getPhotosForAlbum(clusterId);
-      if (cached != null) return cached;
-      throw Exception(failure.message);
+  yield* result.fold(
+    (failure) async* {
+      if (cached == null) throw Exception(failure.message);
     },
-    (photos) async {
-      await _albumMetadataCache.savePhotosForAlbum(clusterId, photos);
-      return photos;
+    (fresh) async* {
+      await _albumMetadataCache.savePhotosForAlbum(clusterId, fresh);
+      if (!listEquals(cached, fresh)) yield await _withLocalPaths(ref, fresh);
     },
   );
+}
+
+// Arricchisce le foto con il path locale del file scaricato in cache, se presente.
+Future<List<Photo>> _withLocalPaths(Ref ref, List<Photo> photos) async {
   try {
     final syncRepo = ref.read(syncRepositoryProvider);
     return await Future.wait(photos.map((p) async {

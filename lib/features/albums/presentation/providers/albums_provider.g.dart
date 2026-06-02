@@ -6,11 +6,11 @@ part of 'albums_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$albumsHash() => r'902822491d8963c00349a575dce1326b13ec0d69';
+String _$albumsHash() => r'e3793cefa8e29c4fc0af86ffcccf70427795440a';
 
 /// See also [albums].
 @ProviderFor(albums)
-final albumsProvider = AutoDisposeFutureProvider<List<Album>>.internal(
+final albumsProvider = AutoDisposeStreamProvider<List<Album>>.internal(
   albums,
   name: r'albumsProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -22,8 +22,8 @@ final albumsProvider = AutoDisposeFutureProvider<List<Album>>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AlbumsRef = AutoDisposeFutureProviderRef<List<Album>>;
-String _$albumPhotosHash() => r'fbb76862596ca74b4e3b48db4a85fa52f4a2bf35';
+typedef AlbumsRef = AutoDisposeStreamProviderRef<List<Album>>;
+String _$albumPhotosHash() => r'bda7cfdc090d95e12d5618e62083d5586d4eb07b';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -83,7 +83,7 @@ class AlbumPhotosFamily extends Family<AsyncValue<List<Photo>>> {
 }
 
 /// See also [albumPhotos].
-class AlbumPhotosProvider extends AutoDisposeFutureProvider<List<Photo>> {
+class AlbumPhotosProvider extends AutoDisposeStreamProvider<List<Photo>> {
   /// See also [albumPhotos].
   AlbumPhotosProvider(String clusterId)
     : this._internal(
@@ -112,7 +112,7 @@ class AlbumPhotosProvider extends AutoDisposeFutureProvider<List<Photo>> {
 
   @override
   Override overrideWith(
-    FutureOr<List<Photo>> Function(AlbumPhotosRef provider) create,
+    Stream<List<Photo>> Function(AlbumPhotosRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -129,7 +129,7 @@ class AlbumPhotosProvider extends AutoDisposeFutureProvider<List<Photo>> {
   }
 
   @override
-  AutoDisposeFutureProviderElement<List<Photo>> createElement() {
+  AutoDisposeStreamProviderElement<List<Photo>> createElement() {
     return _AlbumPhotosProviderElement(this);
   }
 
@@ -149,13 +149,13 @@ class AlbumPhotosProvider extends AutoDisposeFutureProvider<List<Photo>> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin AlbumPhotosRef on AutoDisposeFutureProviderRef<List<Photo>> {
+mixin AlbumPhotosRef on AutoDisposeStreamProviderRef<List<Photo>> {
   /// The parameter `clusterId` of this provider.
   String get clusterId;
 }
 
 class _AlbumPhotosProviderElement
-    extends AutoDisposeFutureProviderElement<List<Photo>>
+    extends AutoDisposeStreamProviderElement<List<Photo>>
     with AlbumPhotosRef {
   _AlbumPhotosProviderElement(super.provider);
 
