@@ -1,5 +1,4 @@
 // ignore_for_file: prefer_initializing_formals
-import 'dart:io';
 import 'dart:math';
 
 import 'package:fpdart/fpdart.dart';
@@ -10,12 +9,13 @@ import '../../domain/entities/widget_album_config.dart';
 import '../../domain/repositories/i_widget_repository.dart';
 import '../datasources/home_widget_datasource.dart';
 import '../datasources/widget_local_datasource.dart';
+import '../widget_refresh_runner.dart';
 
 class WidgetRepositoryImpl implements IWidgetRepository {
   final WidgetLocalDatasource _local;
   final HomeWidgetDatasource _homeWidget;
   final ISyncRepository _sync;
-  final Random _random;
+  late final WidgetRefreshRunner _runner;
 
   WidgetRepositoryImpl({
     required WidgetLocalDatasource local,
@@ -24,8 +24,15 @@ class WidgetRepositoryImpl implements IWidgetRepository {
     Random? random,
   })  : _local = local,
         _homeWidget = homeWidget,
-        _sync = sync,
-        _random = random ?? Random();
+        _sync = sync {
+    _runner = WidgetRefreshRunner(
+      local: _local,
+      homeWidget: _homeWidget,
+      getPaths: (ruleId) async =>
+          (await _sync.getLocalPhotoPathsForRule(ruleId)).getOrElse((_) => <String>[]),
+      random: random,
+    );
+  }
 
   @override
   Future<Either<Failure, Option<WidgetAlbumConfig>>> getPinnedAlbum() async {
@@ -62,64 +69,10 @@ class WidgetRepositoryImpl implements IWidgetRepository {
   @override
   Future<Either<Failure, Unit>> refreshWidget() async {
     try {
-      final configuredWidgetIds = await _homeWidget.getConfiguredWidgetIds();
-      if (configuredWidgetIds.isNotEmpty) {
-        for (final widgetId in configuredWidgetIds) {
-          final config = await _homeWidget.getConfigForWidget(widgetId);
-          if (config == null) {
-            await _homeWidget.clearData(appWidgetId: widgetId);
-            await _homeWidget.removeConfiguredWidgetId(widgetId);
-            continue;
-          }
-
-          final updated = await _refreshSingle(config, appWidgetId: widgetId);
-          if (!updated) {
-            await _homeWidget.clearData(appWidgetId: widgetId);
-          }
-        }
-        await _homeWidget.update();
-        return const Right(unit);
-      }
-
-      final config = await _local.getPinnedAlbum();
-      if (config == null) {
-        await _clearWidget();
-        return const Right(unit);
-      }
-
-      final updated = await _refreshSingle(config);
-      if (!updated) {
-        await _clearWidget();
-        return const Right(unit);
-      }
-
-      await _homeWidget.update();
+      await _runner.refreshAll();
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }
-  }
-
-  Future<bool> _refreshSingle(WidgetAlbumConfig config, {int? appWidgetId}) async {
-    final pathsResult = await _sync.getLocalPhotoPathsForRule(config.ruleId);
-    final paths = pathsResult.getOrElse((_) => <String>[]);
-    // Keep only files still present on disk.
-    final existing = paths.where((p) => File(p).existsSync()).toList();
-    if (existing.isEmpty) return false;
-
-    final pick = existing[_random.nextInt(existing.length)];
-    await _homeWidget.setData(
-      imagePath: pick,
-      albumName: config.albumName,
-      clusterId: config.clusterId,
-      ruleId: config.ruleId,
-      appWidgetId: appWidgetId,
-    );
-    return true;
-  }
-
-  Future<void> _clearWidget() async {
-    await _homeWidget.clearData();
-    await _homeWidget.update();
   }
 }

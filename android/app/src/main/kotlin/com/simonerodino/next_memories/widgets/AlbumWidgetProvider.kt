@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.RemoteViews
 import com.simonerodino.next_memories.MainActivity
 import com.simonerodino.next_memories.R
+import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.io.File
@@ -59,17 +60,35 @@ class AlbumWidgetProvider : HomeWidgetProvider() {
                 views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
             }
 
-            // Tap opens the app; the deep link to the album is handled Flutter-side.
-            val uri = clusterId?.let {
+            // Two tap zones (F2):
+            // - the photo shuffles in place via a background broadcast handled by
+            //   a headless Dart isolate (no app launch). The widgetId travels in
+            //   the URI so the callback refreshes this very instance.
+            val shuffleUri = Uri.parse("nextmemories://shuffle?widgetId=$widgetId")
+            views.setOnClickPendingIntent(
+                R.id.widget_image,
+                HomeWidgetBackgroundIntent.getBroadcast(context, shuffleUri),
+            )
+
+            // - the album-name bar opens the album in the app; the deep link is
+            //   handled Flutter-side (see main.dart).
+            val albumUri = clusterId?.let {
                 Uri.parse(
                     "nextmemories://album" +
                         "?clusterId=${Uri.encode(it)}" +
                         "&name=${Uri.encode(albumName ?: "")}"
                 )
             }
-            val pendingIntent =
-                HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, uri)
-            views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
+            views.setOnClickPendingIntent(
+                R.id.widget_album_name,
+                HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, albumUri),
+            )
+
+            // Empty state: tapping just opens the app.
+            views.setOnClickPendingIntent(
+                R.id.widget_empty,
+                HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, null),
+            )
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }

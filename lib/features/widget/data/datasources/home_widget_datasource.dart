@@ -22,6 +22,7 @@ class HomeWidgetDatasource {
   static const keyRuleId = 'album_widget_rule_id';
   static const keyConfiguredWidgetIds = 'album_widget_configured_ids';
   static const keyAvailableAlbums = 'album_widget_available_albums';
+  static const keyLastShuffle = 'album_widget_last_shuffle';
 
   String _scopedKey(String baseKey, int? appWidgetId) {
     if (appWidgetId == null) return baseKey;
@@ -94,7 +95,16 @@ class HomeWidgetDatasource {
     await HomeWidget.saveWidgetData<String>(keyConfiguredWidgetIds, next.join(','));
   }
 
-  Future<WidgetAlbumConfig?> getConfigForWidget(int appWidgetId) async {
+  /// Config of a specific widget instance (per-`appWidgetId` scoped keys, F1).
+  Future<WidgetAlbumConfig?> getConfigForWidget(int appWidgetId) =>
+      _readConfig(appWidgetId);
+
+  /// Config written under the unscoped keys, i.e. the single pinned album of
+  /// the legacy (pre-F1) flow. Readable without Hive, so the headless shuffle
+  /// callback can use it as a fallback.
+  Future<WidgetAlbumConfig?> getGlobalConfig() => _readConfig(null);
+
+  Future<WidgetAlbumConfig?> _readConfig(int? appWidgetId) async {
     final ruleId = await HomeWidget.getWidgetData<int>(
       _scopedKey(keyRuleId, appWidgetId),
     );
@@ -110,6 +120,19 @@ class HomeWidgetDatasource {
       clusterId: clusterId,
       albumName: albumName,
     );
+  }
+
+  /// Returns true when a shuffle for [appWidgetId] ran less than [minGap] ago
+  /// (and so should be skipped); otherwise records "now" and returns false.
+  /// Backed by home_widget data (SharedPreferences), which is safe to touch
+  /// from the headless isolate. Throttles bursts of taps on the widget.
+  Future<bool> shouldThrottleShuffle(int? appWidgetId, Duration minGap) async {
+    final key = _scopedKey(keyLastShuffle, appWidgetId);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final last = await HomeWidget.getWidgetData<int>(key, defaultValue: 0) ?? 0;
+    if (now - last < minGap.inMilliseconds) return true;
+    await HomeWidget.saveWidgetData<int>(key, now);
+    return false;
   }
 
   Future<void> saveAvailableAlbums(

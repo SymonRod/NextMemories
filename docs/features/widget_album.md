@@ -44,10 +44,10 @@ lista di foto da mostrare nel widget, **garantite offline**.
 | Tema | Scelta MVP | Follow-up futuro |
 |------|-----------|------------------|
 | Quale album | **Strada A**: scelto in-app, uno solo condiviso da tutte le istanze | Config Activity nativa per-`appWidgetId` |
-| Refresh foto | Al pin, all'apertura app, a sync completata | Tap-to-shuffle (interactivity callback) + WorkManager periodico |
+| Refresh foto | Al pin, all'apertura app, a sync completata, **tap sulla foto** (F2 ✅) | WorkManager periodico (F3) |
 | Scelta foto | Random tra le cache entries dell'album | Sequenziale / "memoria del giorno" |
 | Rendering | Bitmap downsampled lato Kotlin (evita `TransactionTooLargeException`) | — |
-| Tap sul widget | Apre l'album in app (deep link) | Shuffle in-place |
+| Tap sul widget | **Foto = shuffle in-place; nome album = apre l'app** (F2 ✅) | — |
 
 ---
 
@@ -175,36 +175,51 @@ Ogni istanza widget (`appWidgetId`) ricorda il proprio album in modo indipendent
 
 ### F2 — Tap-to-shuffle senza aprire l'app (interactivity callback)
 
-**Cosa aggiunge.** Tap sul widget = cambia foto sul posto, senza aprire l'app.
-(Oggi il tap apre l'album.) Eventualmente con due zone di tap: foto = shuffle,
-nome album = apri.
+✅ **Completa.**
 
-**Come.** `home_widget` supporta callback in background eseguiti in un isolate
-Dart headless:
-1. Lato nativo, il tap usa `HomeWidgetBackgroundIntent.getBroadcast(context,
-   Uri.parse("nextmemories://shuffle?widgetId=$id"))` invece di
-   `HomeWidgetLaunchIntent`.
-2. Registrare in Manifest `HomeWidgetBackgroundReceiver` (broadcast) e
-   `HomeWidgetBackgroundService` (vedi esempio del plugin), oggi non presenti
-   perché l'MVP non li usa.
-3. Lato Dart, in `main()` registrare l'entry-point:
-   ```dart
-   @pragma('vm:entry-point')
-   Future<void> widgetBackgroundCallback(Uri? uri) async {
-     // gira in un isolate separato: niente Riverpod/UI.
-     if (uri?.host != 'shuffle') return;
-     // Ricostruire a mano i datasource: aprire Hive (Hive.initFlutter +
-     // openBox), istanziare WidgetLocalDatasource + HomeWidgetDatasource +
-     // l'accesso al DB Drift, scegliere una nuova foto e updateWidget.
-   }
-   ```
-   e chiamare `HomeWidget.registerInteractivityCallback(widgetBackgroundCallback)`.
+**Cosa fa.** Due zone di tap sul widget:
+- **foto** (`R.id.widget_image`) → cambia foto sul posto, senza aprire l'app;
+- **barra col nome album** (`R.id.widget_album_name`) → apre l'album in app
+  (deep link MVP). In stato vuoto, il tap apre semplicemente l'app.
 
-**Insidie.** Il callback NON ha accesso al `ProviderScope`/Riverpod: serve
-ricreare le dipendenze nell'isolate (Hive box e DB Drift vanno riaperti). Il DB
-Drift aperto in due isolate richiede attenzione (usare un'apertura read-only o
-una connessione dedicata). Limiti di tempo/risorse del background. Throttle dei
-tap per evitare update a raffica.
+**Pipeline condivisa (Nota trasversale).** La logica "scegli foto → aggiorna
+widget" è stata estratta in `WidgetRefreshRunner`
+(`lib/features/widget/data/widget_refresh_runner.dart`), senza dipendenze da
+Riverpod. L'unica I/O iniettata è una `PhotoPathsLookup`: l'app la fornisce dal
+sync repository autenticato, l'isolate headless con una lettura Drift diretta
+(auth-free). `WidgetRepositoryImpl.refreshWidget` ora delega a
+`runner.refreshAll()`; il callback F2 usa `runner.refreshScoped(widgetId)`.
+
+**Lato nativo.** Il tap sulla foto usa
+`HomeWidgetBackgroundIntent.getBroadcast(context, Uri.parse("nextmemories://shuffle?widgetId=$widgetId"))`.
+Il `widgetId` viaggia nell'URI così il callback aggiorna proprio quell'istanza.
+In Manifest sono registrati `HomeWidgetBackgroundReceiver` (broadcast
+`es.antonborri.home_widget.action.BACKGROUND`) e `HomeWidgetBackgroundService`
+(`BIND_JOB_SERVICE`).
+
+**Lato Dart.** In `main()`:
+`HomeWidget.registerInteractivityCallback(widgetBackgroundCallback)`. L'entry-point
+(`widget_background_callback.dart`) gira in un isolate headless senza Riverpod e
+ricostruisce a mano i datasource: apre una propria connessione Drift, istanzia
+`SyncLocalDatasource` per leggere le cache entries della regola, e usa il
+`WidgetRefreshRunner` per pescare una foto random e fare `updateWidget`. Il
+`FlutterEngine` del service registra automaticamente i plugin, quindi i canali
+`HomeWidget` (saveWidgetData/updateWidget) funzionano nell'isolate.
+
+**Niente Hive nel callback.** Per evitare di aprire lo stesso box Hive da due
+isolate (non supportato, rischio corruzione), `refreshScoped` legge la config
+**solo** dai dati `home_widget` (SharedPreferences, multi-isolate-safe): chiavi
+per-`appWidgetId` (F1) con fallback alle chiavi globali. Anche il throttle è su
+`home_widget` (`HomeWidgetDatasource.shouldThrottleShuffle`, gap 800 ms) per
+assorbire i tap a raffica.
+
+**Drift nell'isolate.** Il callback apre una `AppDatabase()` dedicata, fa solo
+**letture** e la chiude in `finally`. SQLite tollera questa connessione in
+parallelo a quella dell'app. Il refresh in background NON richiede auth né rete.
+
+**Insidie note.** Limiti di tempo/risorse del background (JobIntentService). Se
+in futuro il callback dovesse scrivere sul DB mentre l'app è in foreground,
+andrebbe rivista la strategia di concorrenza Drift.
 
 ---
 

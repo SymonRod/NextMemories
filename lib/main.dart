@@ -13,12 +13,15 @@ import 'features/sync/domain/entities/sync_status.dart';
 import 'features/sync/presentation/providers/sync_progress_provider.dart';
 import 'features/sync/presentation/providers/sync_rules_provider.dart';
 import 'features/widget/data/datasources/home_widget_datasource.dart';
+import 'features/widget/data/widget_background_callback.dart';
 import 'features/widget/domain/entities/widget_album_config.dart';
 import 'features/widget/presentation/providers/widget_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  // F2: tap on the widget photo shuffles it in place via a headless isolate.
+  await HomeWidget.registerInteractivityCallback(widgetBackgroundCallback);
   runApp(
     const ProviderScope(
       child: NextMemoriesApp(),

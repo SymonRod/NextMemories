@@ -59,6 +59,22 @@
             </intent-filter>
         </activity>
 
+        <!-- F2: background work for the widget interactivity callback
+             (tap-to-shuffle). The receiver hands the broadcast to the service,
+             which spins up a headless Flutter isolate and runs the Dart callback
+             registered via HomeWidget.registerInteractivityCallback. -->
+        <receiver
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="true" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
