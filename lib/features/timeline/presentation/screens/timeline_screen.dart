@@ -6,10 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:share_plus/share_plus.dart';
+
 import '../../../../core/api/memories_api.dart';
+import '../../../../core/services/share_service.dart';
+import '../../../albums/domain/entities/album.dart';
+import '../../../albums/presentation/providers/albums_provider.dart';
+import '../../../albums/presentation/widgets/album_picker_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/entities/photo_day.dart';
+import '../providers/selection_provider.dart';
 import '../providers/timeline_provider.dart';
 
 class TimelineScreen extends ConsumerWidget {
@@ -18,6 +25,7 @@ class TimelineScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timelineAsync = ref.watch(timelineProvider);
+    final selection = ref.watch(selectionProvider);
 
     return Scaffold(
       body: timelineAsync.when(
@@ -30,6 +38,142 @@ class TimelineScreen extends ConsumerWidget {
             ? const _EmptyView()
             : _TimelineList(days: data.days, photosByDay: data.photosByDay),
       ),
+      bottomNavigationBar: selection.isNotEmpty
+          ? _SelectionBar(selection: selection)
+          : null,
+    );
+  }
+}
+
+class _SelectionBar extends ConsumerWidget {
+  final Set<int> selection;
+  const _SelectionBar({required this.selection});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Text(
+              '${selection.length} selezionate',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Condividi',
+              onPressed: () => _share(context, ref),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: () => _pickAlbum(context, ref),
+              icon: const Icon(Icons.photo_album_outlined, size: 18),
+              label: const Text('Aggiungi ad album'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _share(BuildContext context, WidgetRef ref) async {
+    final useOriginal = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Qualità condivisione'),
+        content: const Text(
+          'Vuoi condividere le foto originali (alta qualità) o come anteprime?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Anteprima'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Originale'),
+          ),
+        ],
+      ),
+    );
+    if (useOriginal == null || !context.mounted) return;
+
+    final timelineData = ref.read(timelineProvider).valueOrNull;
+    final selectedPhotos = timelineData?.photosByDay.values
+            .expand((l) => l)
+            .where((p) => selection.contains(p.fileId))
+            .toList() ??
+        [];
+    if (selectedPhotos.isEmpty) return;
+
+    final config = ref.read(authProvider).valueOrNull;
+    if (config == null) return;
+
+    final authHeader =
+        'Basic ${base64Encode(utf8.encode('${config.username}:${config.appPassword}'))}';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Preparazione...'),
+          ],
+        ),
+      ),
+    );
+
+    List<XFile>? xFiles;
+    try {
+      xFiles = await ShareService.prepareFiles(
+        photos: selectedPhotos,
+        useOriginal: useOriginal,
+        serverUrl: config.serverUrl,
+        authHeader: authHeader,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+    // Close loading dialog before opening share sheet — avoids black screen
+    // on return and GoRouter navigator stack corruption.
+    Navigator.of(context, rootNavigator: true).pop();
+
+    await Share.shareXFiles(xFiles);
+  }
+
+  void _pickAlbum(BuildContext context, WidgetRef ref) {
+    showAlbumPickerSheet(
+      context,
+      onAlbumSelected: (Album album) async {
+        final fileIds = selection.toList();
+        // Capture notifiers before clearing selection — clearing disposes this widget and its ref.
+        final addNotifier = ref.read(addPhotosToAlbumProvider.notifier);
+        final selectionNotifier = ref.read(selectionProvider.notifier);
+        selectionNotifier.state = const {};
+        await addNotifier.add(album.name, fileIds);
+      },
     );
   }
 }
@@ -41,7 +185,6 @@ class _TimelineList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // T5 — compute credentials once per list build, not per tile.
     final config = ref.watch(authProvider).valueOrNull;
     final headers = config != null
         ? {
@@ -49,12 +192,26 @@ class _TimelineList extends ConsumerWidget {
           }
         : <String, String>{};
 
+    final selection = ref.watch(selectionProvider);
+    final inSelectionMode = selection.isNotEmpty;
+
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(
-          title: Text('Timeline'),
+        SliverAppBar(
+          title: inSelectionMode
+              ? Text('${selection.length} selezionate')
+              : const Text('Timeline'),
           floating: true,
           snap: true,
+          actions: [
+            if (inSelectionMode)
+              IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Annulla selezione',
+                onPressed: () =>
+                    ref.read(selectionProvider.notifier).state = const {},
+              ),
+          ],
         ),
         SliverList(
           delegate: SliverChildBuilderDelegate(
@@ -142,7 +299,7 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-class _PhotoTile extends StatelessWidget {
+class _PhotoTile extends ConsumerWidget {
   final Photo photo;
   final int dayId;
   final int index;
@@ -158,22 +315,24 @@ class _PhotoTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selection = ref.watch(selectionProvider);
+    final isSelected = selection.contains(photo.fileId);
+    final inSelectionMode = selection.isNotEmpty;
+
     final Widget imageWidget;
     if (photo.localPath != null) {
       imageWidget = Image.file(
         File(photo.localPath!),
         fit: BoxFit.cover,
         cacheWidth: 256,
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (_, e, s) => Container(
           color: Theme.of(context).colorScheme.errorContainer,
           child: Icon(Icons.broken_image_rounded,
               color: Theme.of(context).colorScheme.onErrorContainer, size: 24),
         ),
       );
     } else {
-      // T5 — 256px covers typical 3-column grid tiles at up to 2× dpr;
-      //      headers are computed once by _TimelineList, not per-build.
       final url =
           '$serverUrl${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 256, y: 256)}';
       imageWidget = CachedNetworkImage(
@@ -182,9 +341,9 @@ class _PhotoTile extends StatelessWidget {
         fit: BoxFit.cover,
         memCacheWidth: 256,
         memCacheHeight: 256,
-        placeholder: (_, __) => Container(
+        placeholder: (ctx, url) => Container(
             color: Theme.of(context).colorScheme.surfaceContainerHighest),
-        errorWidget: (_, __, ___) => Container(
+        errorWidget: (ctx, url, err) => Container(
           color: Theme.of(context).colorScheme.errorContainer,
           child: Icon(Icons.broken_image_rounded,
               color: Theme.of(context).colorScheme.onErrorContainer, size: 24),
@@ -193,8 +352,62 @@ class _PhotoTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () => context.push('/viewer?dayId=$dayId&index=$index'),
-      child: imageWidget,
+      onLongPress: () {
+        ref.read(selectionProvider.notifier).update(
+              (s) => {...s, photo.fileId},
+            );
+      },
+      onTap: () {
+        if (inSelectionMode) {
+          ref.read(selectionProvider.notifier).update(
+                (s) => isSelected
+                    ? s.difference({photo.fileId})
+                    : {...s, photo.fileId},
+              );
+        } else {
+          context.push('/viewer?dayId=$dayId&index=$index');
+        }
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          imageWidget,
+          if (inSelectionMode)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.35)
+                  : Colors.transparent,
+            ),
+          if (inSelectionMode)
+            Positioned(
+              top: 4,
+              left: 4,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: isSelected
+                    ? Icon(
+                        Icons.check_circle,
+                        key: const ValueKey('checked'),
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 22,
+                        shadows: const [
+                          Shadow(blurRadius: 4, color: Colors.black38),
+                        ],
+                      )
+                    : Icon(
+                        Icons.radio_button_unchecked,
+                        key: const ValueKey('unchecked'),
+                        color: Colors.white,
+                        size: 22,
+                        shadows: const [
+                          Shadow(blurRadius: 4, color: Colors.black54),
+                        ],
+                      ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

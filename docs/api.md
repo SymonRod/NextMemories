@@ -221,9 +221,68 @@ Usata per dati utente non legati a Memories.
 
 ## WebDAV
 
-Base URL: `https://{server}/remote.php/dav/files/{username}/`
+Base URL: `https://{server}/remote.php/dav/`
 
-Usato per download file e listing directory. Il client è `webdav_client`.
+Usato per download file, listing directory e operazioni sugli album. Le operazioni di modifica album usano Dio direttamente con metodi HTTP custom (non `webdav_client`).
+
+### SEARCH — Risoluzione fileId → path
+
+```
+SEARCH /remote.php/dav
+Content-Type: application/xml
+```
+
+Risposta `207 Multi-Status`. Usato per mappare `fileId → path DAV` prima di operazioni COPY.
+
+```xml
+<!-- Request -->
+<?xml version="1.0" encoding="UTF-8"?>
+<d:searchrequest xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" ...>
+  <d:basicsearch>
+    <d:select><d:prop><oc:fileid /></d:prop></d:select>
+    <d:from><d:scope>
+      <d:href>/files/{username}</d:href><d:depth>0</d:depth>
+    </d:scope></d:from>
+    <d:where><d:or>
+      <d:eq><d:prop><oc:fileid/></d:prop><d:literal>1062223</d:literal></d:eq>
+      <!-- un <d:eq> per ogni fileId -->
+    </d:or></d:where>
+  </d:basicsearch>
+</d:searchrequest>
+
+<!-- Response (207) -->
+<d:multistatus>
+  <d:response>
+    <d:href>/remote.php/dav/files/rod/InstantUpload/Camera/photo.jpg</d:href>
+    <d:propstat>
+      <d:prop><oc:fileid>1062223</oc:fileid></d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+```
+
+Il parsing avviene con regex (`_responseBlockRegex`, `_hrefRegex`, `_fileIdRegex`) in `albums_remote_datasource.dart`. I path nell'href sono già URI-encoded: decodificare prima di re-encodare per il `Destination` header.
+
+### COPY — Aggiunta foto all'album
+
+```
+COPY /remote.php/dav/files/{user}/path/to/photo.jpg
+Destination: https://{server}/remote.php/dav/photos/{user}/albums/{albumName}/{basename}
+```
+
+- `Destination` è un URL assoluto.
+- **201** = successo. **409** = già presente nell'album → ignorato.
+
+### DELETE — Rimozione foto dall'album
+
+```
+DELETE /remote.php/dav/photos/{user}/albums/{albumName}/{fileId}-{basename}
+```
+
+Il filename nell'album ha formato `{fileId}-{basename}` (es. `1062223-photo.jpg`).
+
+- **204** = successo. **404** = non presente → ignorato.
 
 ---
 

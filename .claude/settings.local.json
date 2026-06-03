@@ -4,7 +4,9 @@
       "Bash(flutter pub *)",
       "Bash(flutter run *)",
       "Bash(flutter analyze *)",
-      "Bash(dart run *)"
+      "Bash(dart run *)",
+      "mcp__plugin_sentry_sentry__get_sentry_resource",
+      "Bash(git *)"
     ]
   }
 }

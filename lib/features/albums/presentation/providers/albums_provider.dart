@@ -11,8 +11,11 @@ import '../../../../features/sync/presentation/providers/sync_rules_provider.dar
 import '../../../../features/timeline/domain/entities/photo.dart';
 import '../../data/repositories/albums_repository_impl.dart';
 import '../../domain/entities/album.dart';
+import '../../../../core/services/notification_service.dart';
+import '../../domain/usecases/add_photos_to_album_use_case.dart';
 import '../../domain/usecases/get_album_photos_use_case.dart';
 import '../../domain/usecases/get_albums_use_case.dart';
+import '../../domain/usecases/remove_photos_from_album_use_case.dart';
 
 part 'albums_provider.g.dart';
 
@@ -92,6 +95,69 @@ Stream<List<Photo>> albumPhotos(Ref ref, String clusterId) async* {
       if (!listEquals(cached, fresh)) yield await _withLocalPaths(ref, fresh);
     },
   );
+}
+
+@riverpod
+class RemovePhotosFromAlbum extends _$RemovePhotosFromAlbum {
+  @override
+  Future<void> build() async {}
+
+  Future<void> remove(
+    String albumName,
+    String clusterId,
+    Map<int, String> fileIdToBasename,
+  ) async {
+    final config = ref.read(authProvider).valueOrNull;
+    if (config == null) throw Exception('Not authenticated');
+    final notifications = ref.read(notificationServiceProvider);
+    final count = fileIdToBasename.length;
+    notifications.showInfo('Rimozione di $count foto…');
+    state = const AsyncLoading();
+    final repo = AlbumsRepositoryImpl.fromConfig(config);
+    final result =
+        await RemovePhotosFromAlbumUseCase(repo)(albumName, fileIdToBasename);
+    state = result.fold(
+      (f) {
+        notifications.showError(f.message);
+        return AsyncError(f.message, StackTrace.current);
+      },
+      (_) {
+        ref.invalidate(albumPhotosProvider(clusterId));
+        notifications.showSuccess(
+          '${count == 1 ? '1 foto rimossa' : '$count foto rimosse'} da "$albumName"',
+        );
+        return const AsyncData(null);
+      },
+    );
+  }
+}
+
+@riverpod
+class AddPhotosToAlbum extends _$AddPhotosToAlbum {
+  @override
+  Future<void> build() async {}
+
+  Future<void> add(String albumName, List<int> fileIds) async {
+    final config = ref.read(authProvider).valueOrNull;
+    if (config == null) throw Exception('Not authenticated');
+    final notifications = ref.read(notificationServiceProvider);
+    notifications.showInfo('Aggiungendo ${fileIds.length} foto…');
+    state = const AsyncLoading();
+    final repo = AlbumsRepositoryImpl.fromConfig(config);
+    final result = await AddPhotosToAlbumUseCase(repo)(albumName, fileIds);
+    state = result.fold(
+      (f) {
+        notifications.showError(f.message);
+        return AsyncError(f.message, StackTrace.current);
+      },
+      (_) {
+        notifications.showSuccess(
+          '${fileIds.length} ${fileIds.length == 1 ? 'foto aggiunta' : 'foto aggiunte'} a "$albumName"',
+        );
+        return const AsyncData(null);
+      },
+    );
+  }
 }
 
 // Arricchisce le foto con il path locale del file scaricato in cache, se presente.

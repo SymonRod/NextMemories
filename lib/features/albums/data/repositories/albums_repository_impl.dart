@@ -46,4 +46,36 @@ class AlbumsRepositoryImpl implements IAlbumsRepository {
       return Left(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> removePhotosFromAlbum(
+      String albumName, Map<int, String> fileIdToBasename) async {
+    try {
+      await _remote.removePhotosFromAlbum(albumName, fileIdToBasename);
+      return const Right(null);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return const Left(AuthFailure('Sessione scaduta'));
+      }
+      return Left(NetworkFailure(e.message ?? 'Errore di rete'));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addPhotosToAlbum(
+      String albumName, List<int> fileIds) async {
+    try {
+      await _remote.addPhotosToAlbum(albumName, fileIds);
+      return const Right(null);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return const Left(AuthFailure('Sessione scaduta'));
+      }
+      return Left(NetworkFailure(e.message ?? 'Errore di rete'));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
 }

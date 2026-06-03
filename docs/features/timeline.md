@@ -72,6 +72,47 @@ Provider in `timeline_provider.dart`:
 (`syncRepo.getLocalPaths(Set<int> fileIds)` → `WHERE fileId IN (...)`), non più una query
 per foto. I tile usano `Image.file` se `localPath != null`, altrimenti `CachedNetworkImage`.
 
+## Selezione multipla
+
+La struttura dei widget supporta la selezione multipla tramite `selectionProvider`.
+
+### Architettura
+
+```
+lib/features/timeline/presentation/providers/selection_provider.dart
+  → StateProvider<Set<int>>   // fileId delle foto selezionate (vuoto = non in selezione)
+```
+
+Il provider è **globale** — condiviso anche da `AlbumDetailScreen` per le azioni in-album.
+
+### UX nella Timeline
+
+- **Long press** su una foto → aggiunge al set ed entra in modalità selezione
+- **Tap** in modalità selezione → toggle (aggiunge / rimuove)
+- **AppBar**: mostra "N selezionate" + pulsante X per uscire
+- **Barra azioni in basso** (`_SelectionBar`) compare quando `selection.isNotEmpty`
+
+### Azioni disponibili dalla Timeline
+
+| Azione | Descrizione |
+|---|---|
+| Aggiungi ad album | Apre `AlbumPickerSheet`, poi SEARCH + COPY WebDAV — vedi [albums.md](albums.md) |
+| Condividi | Download temporaneo e `share_plus` (originale o preview) |
+
+### Nota: ref dopo dispose
+
+Azzerare `selectionProvider` rimuove `_SelectionBar` dal widget tree e invalida `ref`.
+Tutti i `ref.read(...)` vanno catturati **prima** dell'azzeramento:
+
+```dart
+final addNotifier = ref.read(addPhotosToAlbumProvider.notifier); // prima
+final selectionNotifier = ref.read(selectionProvider.notifier);  // prima
+selectionNotifier.state = const {};  // ora il widget è disposto
+await addNotifier.add(...);          // ref non usato qui
+```
+
+---
+
 ## Note implementative
 
 - `dayId` è in **giorni dall'Unix epoch**, non YYYYMMDD
@@ -80,12 +121,14 @@ per foto. I tile usano `Image.file` se `localPath != null`, altrimenti `CachedNe
 - Le thumbnail richiedono `Authorization: Basic ...` negli header HTTP — credenziali e
   `serverUrl` calcolati **una volta** in `_TimelineList` e passati ai tile (non più per build, T5)
 - Thumbnail della griglia a 256px con `memCacheWidth/memCacheHeight: 256` (T5)
-- `_DaySection`/`_PhotoTile` sono `StatelessWidget` e leggono dalla mappa già caricata
+- `_DaySection` è `StatelessWidget`; `_PhotoTile` è `ConsumerWidget` per leggere `selectionProvider`
 
 ## Known issues / TODO
 
 - [x] Sfruttare il campo `detail` di GET `/days` (T2)
 - [x] Cache offline metadati (Hive) — vedi [Sync](sync.md), livello metadati
+- [x] Selezione multipla + aggiungi ad album
+- [x] Condivisione foto
 - [ ] Pull-to-refresh
 - [ ] **Caricamento windowed / scroll a una data lontana** — oggi `getTimeline()` carica
   *tutte* le foto di *tutti* i giorni in un'unica passata: per arrivare a una data lontana

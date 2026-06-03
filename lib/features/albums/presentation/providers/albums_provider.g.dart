@@ -163,5 +163,38 @@ class _AlbumPhotosProviderElement
   String get clusterId => (origin as AlbumPhotosProvider).clusterId;
 }
 
+String _$removePhotosFromAlbumHash() =>
+    r'554c03ccb6350bf81d75fdc545f7c93e8c85e05b';
+
+/// See also [RemovePhotosFromAlbum].
+@ProviderFor(RemovePhotosFromAlbum)
+final removePhotosFromAlbumProvider =
+    AutoDisposeAsyncNotifierProvider<RemovePhotosFromAlbum, void>.internal(
+      RemovePhotosFromAlbum.new,
+      name: r'removePhotosFromAlbumProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$removePhotosFromAlbumHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$RemovePhotosFromAlbum = AutoDisposeAsyncNotifier<void>;
+String _$addPhotosToAlbumHash() => r'5cc0cf2ee2948f7d2f519d0ee4dc1dbe42a87e46';
+
+/// See also [AddPhotosToAlbum].
+@ProviderFor(AddPhotosToAlbum)
+final addPhotosToAlbumProvider =
+    AutoDisposeAsyncNotifierProvider<AddPhotosToAlbum, void>.internal(
+      AddPhotosToAlbum.new,
+      name: r'addPhotosToAlbumProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$addPhotosToAlbumHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$AddPhotosToAlbum = AutoDisposeAsyncNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

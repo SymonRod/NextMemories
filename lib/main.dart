@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/sync/domain/entities/sync_rule.dart';
 import 'features/sync/domain/entities/sync_status.dart';
@@ -134,6 +135,7 @@ class _NextMemoriesAppState extends ConsumerState<NextMemoriesApp>
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final messengerKey = ref.watch(scaffoldMessengerKeyProvider);
 
     // Refresh the widget when a sync run completes (cache contents changed).
     ref.listen<SyncProgress>(syncProgressNotifierProvider, (prev, next) {
@@ -149,6 +151,7 @@ class _NextMemoriesAppState extends ConsumerState<NextMemoriesApp>
     );
 
     return MaterialApp.router(
+      scaffoldMessengerKey: messengerKey,
       title: 'Next Memories',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

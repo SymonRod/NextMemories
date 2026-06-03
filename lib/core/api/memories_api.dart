@@ -22,4 +22,5 @@ class MemoriesApi {
       '$basePath/image/preview/$fileId?c=$etag&x=$x&y=$y&a=1';
 
   static String webdavUser(String username) => '$webdavBasePath/$username/';
+  static const String webdavSearchPath = '/remote.php/dav';
 }
