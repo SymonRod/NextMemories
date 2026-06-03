@@ -15,6 +15,7 @@ class MemoriesApi {
 
   static String albums() => '$basePath/clusters/albums';
   static String albumDays(String clusterId) => '$basePath/days?albums=${Uri.encodeComponent(clusterId)}';
+  static String albumDaysPhotos(String clusterId) => '$basePath/days?albums=${Uri.encodeComponent(clusterId)}';
 
   static String photoInfo(int fileId) => '$basePath/image/info/$fileId';
   static String photoPreview(int fileId, {required String etag, int x = 512, int y = 512}) =>

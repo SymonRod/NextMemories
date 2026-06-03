@@ -40,18 +40,31 @@ class AlbumsRemoteDatasource {
 
   Future<List<PhotoModel>> getAlbumPhotos(String clusterId) async {
     try {
-      final response = await _dio.get(MemoriesApi.albumDays(clusterId));
-      debugPrint('[Albums] GET albumDays status: ${response.statusCode}');
-      final days = (response.data as List<dynamic>)
+      // Step 1: get day buckets to know all dayIds in this album.
+      final daysResp = await _dio.get(MemoriesApi.albumDays(clusterId));
+      debugPrint('[Albums] GET albumDays status: ${daysResp.statusCode}');
+      final days = (daysResp.data as List<dynamic>)
           .map((e) => PhotoDayModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      final photos = days
-          .expand((day) => day.detail ?? <PhotoModel>[])
+
+      if (days.isEmpty) return [];
+
+      // Step 2: batch-fetch all photos via POST, same as the timeline does.
+      final dayIds = days.map((d) => d.dayId).toList();
+      final photosResp = await _dio.post(
+        MemoriesApi.albumDaysPhotos(clusterId),
+        data: {'dayIds': dayIds},
+        options: Options(contentType: 'application/json'),
+      );
+      debugPrint('[Albums] POST albumDaysPhotos status: ${photosResp.statusCode}');
+      final photos = (photosResp.data as List<dynamic>)
+          .map((e) => PhotoModel.fromJson(e as Map<String, dynamic>))
           .toList();
+
       debugPrint('[Albums] Total album photos: ${photos.length}');
       return photos;
     } catch (e) {
-      debugPrint('[Albums] GET albumDays ERROR: $e');
+      debugPrint('[Albums] getAlbumPhotos ERROR: $e');
       rethrow;
     }
   }

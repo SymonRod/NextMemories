@@ -6,8 +6,6 @@ import '../../domain/entities/sync_rule.dart';
 import '../../domain/entities/sync_status.dart';
 import '../providers/sync_progress_provider.dart';
 import '../providers/sync_rules_provider.dart';
-import '../../../widget/domain/entities/widget_album_config.dart';
-import '../../../widget/presentation/providers/widget_provider.dart';
 
 class SyncSettingsScreen extends ConsumerWidget {
   const SyncSettingsScreen({super.key});
@@ -182,8 +180,6 @@ class _SyncRuleCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(syncRuleStatsProvider(rule.id));
     final colors = Theme.of(context).colorScheme;
-    final isPinned = rule.type == SyncRuleType.album &&
-        ref.watch(pinnedAlbumWidgetProvider).valueOrNull?.ruleId == rule.id;
 
     return Card.outlined(
       margin: const EdgeInsets.only(bottom: 8),
@@ -233,51 +229,13 @@ class _SyncRuleCard extends ConsumerWidget {
           ],
         ),
         isThreeLine: true,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (rule.type == SyncRuleType.album)
-              IconButton(
-                icon: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-                color: isPinned ? colors.primary : null,
-                tooltip: isPinned ? 'Rimuovi dal widget' : 'Mostra nel widget',
-                onPressed: () => _togglePin(context, ref, isPinned),
-              ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Rimuovi',
-              onPressed: () => _confirmDelete(context, ref),
-            ),
-          ],
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline),
+          tooltip: 'Rimuovi',
+          onPressed: () => _confirmDelete(context, ref),
         ),
       ),
     );
-  }
-
-  Future<void> _togglePin(BuildContext context, WidgetRef ref, bool isPinned) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final notifier = ref.read(pinnedAlbumWidgetProvider.notifier);
-    try {
-      if (isPinned) {
-        await notifier.unpin();
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Album rimosso dal widget')),
-        );
-      } else {
-        await notifier.pin(WidgetAlbumConfig(
-          ruleId: rule.id,
-          clusterId: rule.clusterId!,
-          albumName: _ruleTitle(rule),
-        ));
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Album impostato nel widget')),
-        );
-      }
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Errore: ${e.toString().replaceAll('Exception: ', '')}')),
-      );
-    }
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
@@ -296,13 +254,8 @@ class _SyncRuleCard extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(syncRulesProvider.notifier).deleteRule(rule.id).then((_) async {
+              ref.read(syncRulesProvider.notifier).deleteRule(rule.id).then((_) {
                 ref.invalidate(syncTotalCacheBytesProvider);
-                // Drop a stale widget pin if it pointed at this rule.
-                final pinned = ref.read(pinnedAlbumWidgetProvider).valueOrNull;
-                if (pinned?.ruleId == rule.id) {
-                  await ref.read(pinnedAlbumWidgetProvider.notifier).unpin();
-                }
               });
             },
             style: FilledButton.styleFrom(

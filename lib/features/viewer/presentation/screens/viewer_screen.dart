@@ -10,6 +10,7 @@ import '../../../../core/api/memories_api.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../timeline/presentation/providers/timeline_provider.dart';
 import '../providers/favorite_provider.dart';
+import '../widgets/photo_info_sheet.dart';
 import '../widgets/photo_page.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
@@ -151,6 +152,16 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         actions: [
+                          IconButton(
+                            icon: const Icon(Icons.info_outline),
+                            onPressed: () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) =>
+                                  PhotoInfoSheet(fileId: photo.fileId),
+                            ),
+                          ),
                           _FavoriteButton(fileId: photo.fileId),
                         ],
                       ),
