@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:webdav_client/webdav_client.dart' as webdav;
 
 import '../../../../core/api/auth_interceptor.dart';
 import '../../../../core/api/memories_api.dart';
@@ -14,7 +13,6 @@ typedef DownloadResult = ({String localPath, int sizeBytes});
 class SyncDownloadDatasource {
   final ServerConfig _config;
   late final Dio _dio = _buildDio();
-  late final webdav.Client _webdav = _buildWebdavClient();
 
   SyncDownloadDatasource(this._config);
 
@@ -26,12 +24,6 @@ class SyncDownloadDatasource {
     ));
     return dio;
   }
-
-  webdav.Client _buildWebdavClient() => webdav.newClient(
-        _config.serverUrl,
-        user: _config.username,
-        password: _config.appPassword,
-      );
 
   Future<Directory> _syncDir() async {
     final docs = await getApplicationDocumentsDirectory();
@@ -91,6 +83,7 @@ class SyncDownloadDatasource {
     return (localPath: finalPath, sizeBytes: sizeBytes);
   }
 
+  // S7 — single request via /api/stream instead of GET /image/info + WebDAV.
   Future<DownloadResult> downloadOriginal({
     required int fileId,
     required String basename,
@@ -101,16 +94,7 @@ class SyncDownloadDatasource {
     final partPath = p.join(dir.path, '$fileId.$ext.part');
     final finalPath = p.join(dir.path, '$fileId.$ext');
 
-    final infoResponse = await _dio.get<Map<String, dynamic>>(
-      MemoriesApi.photoInfo(fileId),
-    );
-    final davFilename = infoResponse.data!['filename'] as String;
-
-    // read2File accetta l'URL completo perché il client interno skippa
-    // il join con la base URI quando il path comincia con http(s)://.
-    final fullUrl =
-        '${_config.serverUrl}${MemoriesApi.webdavBasePath}/${_config.username}$davFilename';
-    await _webdav.read2File(fullUrl, partPath);
+    await _dio.download(MemoriesApi.stream(fileId), partPath);
 
     final sizeBytes = await File(partPath).length();
     await File(partPath).rename(finalPath);

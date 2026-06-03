@@ -76,11 +76,13 @@ class AlbumDetailScreen extends ConsumerWidget {
                         );
                       } else {
                         final url =
-                            '${config.serverUrl}${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 512, y: 512)}';
+                            '${config.serverUrl}${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 256, y: 256)}';
                         imageWidget = CachedNetworkImage(
                           imageUrl: url,
                           httpHeaders: {'Authorization': 'Basic $credentials'},
                           fit: BoxFit.cover,
+                          memCacheWidth: 256,
+                          memCacheHeight: 256,
                           placeholder: (_, __) => Container(
                               color: Theme.of(context)
                                   .colorScheme

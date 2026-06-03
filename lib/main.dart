@@ -16,17 +16,31 @@ import 'features/widget/data/datasources/home_widget_datasource.dart';
 import 'features/widget/data/widget_background_callback.dart';
 import 'features/widget/domain/entities/widget_album_config.dart';
 import 'features/widget/presentation/providers/widget_provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   // F2: tap on the widget photo shuffles it in place via a headless isolate.
   await HomeWidget.registerInteractivityCallback(widgetBackgroundCallback);
-  runApp(
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://12143d6b4caab4b946a920a7ac8f4f59@o4511503103295488.ingest.de.sentry.io/4511503105392720';
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+      // We recommend adjusting this value in production.
+      options.tracesSampleRate = 1.0;
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(SentryWidget(child: 
     const ProviderScope(
       child: NextMemoriesApp(),
     ),
+  )),
   );
+  // TODO: Remove this line after sending the first sample event to sentry.
+  await Sentry.captureException(Exception('This is a sample exception.'));
 }
 
 class NextMemoriesApp extends ConsumerStatefulWidget {

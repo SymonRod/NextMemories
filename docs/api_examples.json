@@ -1,0 +1,122 @@
+{
+  "Days#days": [
+    { "dayid": 1717411200, "count": 15 },
+    { "dayid": 1717324800, "count": 8 }
+  ],
+  "Days#day": {
+    "message": "ok"
+  },
+  "Days#dayGet": {
+    "dayid": 1717411200,
+    "count": 15
+  },
+  "Folders#sub": [
+    { "id": "folder_1", "name": "Vacanze 2024" },
+    { "id": "folder_2", "name": "Lavoro" }
+  ],
+  "Clusters#list": [
+    { "id": "cluster_1", "name": "Cluster Alpha" },
+    { "id": "cluster_2", "name": "Cluster Beta" }
+  ],
+  "Clusters#preview": {
+    "url": "/api/image/preview/123",
+    "thumbnail": "base64_data_here"
+  },
+  "Clusters#setCover": {
+    "message": "ok"
+  },
+  "Clusters#download": {
+    "url": "/api/download/handle_abc_123"
+  },
+  "Tags#set": {
+    "message": "ok"
+  },
+  "Map#clusters": [
+    { "lat": 45.4642, "lng": 9.1900, "cluster_id": "cluster_1" },
+    { "lat": 41.8902, "lng": 12.4922, "cluster_id": "cluster_2" }
+  ],
+  "Map#init": {
+    "status": "ready",
+    "bounds": { "north": 50, "south": 40, "east": 15, "west": 5 }
+  },
+  "Archive#archive": {
+    "message": "ok"
+  },
+  "Image#preview": {
+    "url": "/api/image/preview/456"
+  },
+  "Image#multipreview": [
+    { "id": "456", "url": "/api/image/preview/456" },
+    { "id": "457", "url": "/api/image/preview/457" }
+  ],
+  "Image#info": {
+    "id": 456,
+    "size": 2048576,
+    "mime_type": "image/jpeg",
+    "exif": { "make": "Apple", "model": "iPhone 13" }
+  },
+  "Image#setExif": {
+    "message": "ok"
+  },
+  "Image#decodable": {
+    "decodable": true
+  },
+  "Image#editImage": {
+    "message": "ok"
+  },
+  "Image#deleteFile": {
+    "message": "ok"
+  },
+  "Video#transcode": {
+    "status": "processing",
+    "url": "/api/stream/789"
+  },
+  "Video#livephoto": {
+    "url": "/api/video/livephoto/789"
+  },
+  "Download#request": {
+    "handle": "download_handle_xyz_789"
+  },
+  "Download#file": "[Binary Data]",
+  "Download#one": "[Binary Data]",
+  "Share#links": [
+    { "url": "/s/token_abc/share", "token": "token_abc" }
+  ],
+  "Share#createNode": {
+    "id": "node_123",
+    "path": "/folder/subfolder"
+  },
+  "Share#deleteShare": {
+    "message": "ok"
+  },
+  "Other#setUserConfig": {
+    "message": "ok"
+  },
+  "Other#getUserConfig": {
+    "theme": "dark",
+    "language": "it",
+    "notifications": true
+  },
+  "Other#describeApi": {
+    "version": "1.0",
+    "endpoints": ["/api/days", "/api/clusters", "..."]
+  },
+  "Admin#getSystemStatus": {
+    "status": "healthy",
+    "uptime": 3600
+  },
+  "Admin#getSystemConfig": {
+    "max_upload_size": 104857600,
+    "storage_path": "/mnt/data"
+  },
+  "Admin#setSystemConfig": {
+    "message": "ok"
+  },
+  "Admin#getFailureLogs": [
+    { "timestamp": 1717411200, "error": "Connection timeout" },
+    { "timestamp": 1717411500, "error": "Permission denied" }
+  ],
+  "Admin#placesSetup": {
+    "message": "ok"
+  }
+}

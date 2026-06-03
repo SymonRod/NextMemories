@@ -6,47 +6,64 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/api/memories_api.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/entities/photo_day.dart';
 import '../providers/timeline_provider.dart';
-import '../../../../core/api/memories_api.dart';
 
 class TimelineScreen extends ConsumerWidget {
   const TimelineScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final daysAsync = ref.watch(timelineDaysProvider);
+    final timelineAsync = ref.watch(timelineProvider);
 
     return Scaffold(
-      body: daysAsync.when(
+      body: timelineAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorView(message: e.toString(), onRetry: () => ref.invalidate(timelineDaysProvider)),
-        data: (days) => days.isEmpty
+        error: (e, _) => _ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(timelineProvider),
+        ),
+        data: (data) => data.days.isEmpty
             ? const _EmptyView()
-            : _TimelineList(days: days),
+            : _TimelineList(days: data.days, photosByDay: data.photosByDay),
       ),
     );
   }
 }
 
-class _TimelineList extends StatelessWidget {
+class _TimelineList extends ConsumerWidget {
   final List<PhotoDay> days;
-  const _TimelineList({required this.days});
+  final Map<int, List<Photo>> photosByDay;
+  const _TimelineList({required this.days, required this.photosByDay});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // T5 — compute credentials once per list build, not per tile.
+    final config = ref.watch(authProvider).valueOrNull;
+    final headers = config != null
+        ? {
+            'Authorization': 'Basic ${base64Encode(utf8.encode('${config.username}:${config.appPassword}'))}'
+          }
+        : <String, String>{};
+
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          title: const Text('Timeline'),
+        const SliverAppBar(
+          title: Text('Timeline'),
           floating: true,
           snap: true,
         ),
         SliverList(
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _DaySection(day: days[index]),
+            (context, index) => _DaySection(
+              day: days[index],
+              photos: photosByDay[days[index].dayId],
+              serverUrl: config?.serverUrl ?? '',
+              httpHeaders: headers,
+            ),
             childCount: days.length,
           ),
         ),
@@ -56,9 +73,18 @@ class _TimelineList extends StatelessWidget {
   }
 }
 
-class _DaySection extends ConsumerWidget {
+class _DaySection extends StatelessWidget {
   final PhotoDay day;
-  const _DaySection({required this.day});
+  final List<Photo>? photos;
+  final String serverUrl;
+  final Map<String, String> httpHeaders;
+
+  const _DaySection({
+    required this.day,
+    required this.photos,
+    required this.serverUrl,
+    required this.httpHeaders,
+  });
 
   static const _months = [
     '', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
@@ -71,8 +97,8 @@ class _DaySection extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final photosAsync = ref.watch(dayPhotosProvider(day.dayId));
+  Widget build(BuildContext context) {
+    final dayPhotos = photos;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,21 +113,13 @@ class _DaySection extends ConsumerWidget {
                 ),
           ),
         ),
-        photosAsync.when(
-          loading: () => const SizedBox(
+        if (dayPhotos == null)
+          const SizedBox(
             height: 100,
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          ),
-          error: (e, _) => SizedBox(
-            height: 48,
-            child: Center(
-              child: Text(
-                'Errore caricamento',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          ),
-          data: (photos) => GridView.builder(
+          )
+        else
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -110,35 +128,43 @@ class _DaySection extends ConsumerWidget {
               mainAxisSpacing: 2,
               crossAxisSpacing: 2,
             ),
-            itemCount: photos.length,
+            itemCount: dayPhotos.length,
             itemBuilder: (context, index) => _PhotoTile(
-              photo: photos[index],
+              photo: dayPhotos[index],
               dayId: day.dayId,
               index: index,
+              serverUrl: serverUrl,
+              httpHeaders: httpHeaders,
             ),
           ),
-        ),
       ],
     );
   }
 }
 
-class _PhotoTile extends ConsumerWidget {
+class _PhotoTile extends StatelessWidget {
   final Photo photo;
   final int dayId;
   final int index;
-  const _PhotoTile({required this.photo, required this.dayId, required this.index});
+  final String serverUrl;
+  final Map<String, String> httpHeaders;
+
+  const _PhotoTile({
+    required this.photo,
+    required this.dayId,
+    required this.index,
+    required this.serverUrl,
+    required this.httpHeaders,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(authProvider).valueOrNull;
-    if (config == null) return const SizedBox.shrink();
-
+  Widget build(BuildContext context) {
     final Widget imageWidget;
     if (photo.localPath != null) {
       imageWidget = Image.file(
         File(photo.localPath!),
         fit: BoxFit.cover,
+        cacheWidth: 256,
         errorBuilder: (_, __, ___) => Container(
           color: Theme.of(context).colorScheme.errorContainer,
           child: Icon(Icons.broken_image_rounded,
@@ -146,14 +172,16 @@ class _PhotoTile extends ConsumerWidget {
         ),
       );
     } else {
-      final credentials =
-          base64Encode(utf8.encode('${config.username}:${config.appPassword}'));
+      // T5 — 256px covers typical 3-column grid tiles at up to 2× dpr;
+      //      headers are computed once by _TimelineList, not per-build.
       final url =
-          '${config.serverUrl}${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 512, y: 512)}';
+          '$serverUrl${MemoriesApi.photoPreview(photo.fileId, etag: photo.etag ?? '', x: 256, y: 256)}';
       imageWidget = CachedNetworkImage(
         imageUrl: url,
-        httpHeaders: {'Authorization': 'Basic $credentials'},
+        httpHeaders: httpHeaders,
         fit: BoxFit.cover,
+        memCacheWidth: 256,
+        memCacheHeight: 256,
         placeholder: (_, __) => Container(
             color: Theme.of(context).colorScheme.surfaceContainerHighest),
         errorWidget: (_, __, ___) => Container(

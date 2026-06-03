@@ -99,12 +99,26 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   } else {
                     final url =
                         '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 1920, y: 1920)}';
+                    // Mostra subito la thumbnail 256px (già in cache dalla griglia)
+                    // come placeholder, poi sblocca in alta risoluzione: l'apertura
+                    // appare istantanea anche se il server deve ancora generare la
+                    // preview 1920px.
+                    final thumbUrl =
+                        '${config.serverUrl}${MemoriesApi.photoPreview(p.fileId, etag: p.etag ?? '', x: 256, y: 256)}';
                     imageWidget = CachedNetworkImage(
                       imageUrl: url,
                       httpHeaders: {'Authorization': 'Basic $credentials'},
                       fit: BoxFit.contain,
-                      placeholder: (_, __) => const Center(
-                        child: CircularProgressIndicator(color: Colors.white54),
+                      placeholder: (_, __) => CachedNetworkImage(
+                        imageUrl: thumbUrl,
+                        httpHeaders: {'Authorization': 'Basic $credentials'},
+                        fit: BoxFit.contain,
+                        placeholder: (_, __) => const Center(
+                          child: CircularProgressIndicator(color: Colors.white54),
+                        ),
+                        errorWidget: (_, __, ___) => const Center(
+                          child: CircularProgressIndicator(color: Colors.white54),
+                        ),
                       ),
                       errorWidget: (_, __, ___) => const Icon(
                         Icons.broken_image_rounded,

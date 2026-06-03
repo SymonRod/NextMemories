@@ -84,6 +84,17 @@ Le route `/album-detail` e `/album-viewer` usano `extra` (Map) perché `clusterI
 
 ---
 
+## Performance
+
+Vedi [performance_plan.md](../performance_plan.md). Stato per gli album:
+
+- **T2 (N+1 di rete)** — non necessario: le foto arrivano già in una sola `GET /days?albums=...` con `detail` inline.
+- **T3 (batch local-path)** — ✅ `_withLocalPaths` usa `syncRepo.getLocalPaths(Set<int>)` (una query) invece di una query per foto.
+- **T5 (thumbnail)** — ✅ griglia a 256px con `memCacheWidth/memCacheHeight: 256` in `album_detail_screen`.
+- **Cache offline / stale-while-revalidate** — già presente in `albumsProvider`/`albumPhotosProvider` (prefetch foto in background).
+- **Sync (S6/S7/S8)** — applicati automaticamente: le regole di sync su album usano lo stesso `runSync` (worker pool + `/api/stream`) della feature Sync.
+- **T1 (Dio condiviso)** — non applicato: basso impatto (poche istanze) e toccherebbe la logica offline degli stream provider.
+
 ## Dipendenze da altre feature
 
 - `Photo` entity e `PhotoModel` condivisi da `features/timeline/`

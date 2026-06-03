@@ -1,4 +1,6 @@
 // ignore_for_file: prefer_initializing_formals
+import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
@@ -8,6 +10,7 @@ import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/error/failures.dart';
 import '../../../albums/domain/repositories/i_albums_repository.dart';
 import '../../../timeline/domain/entities/photo.dart';
+import '../../../timeline/domain/entities/photo_day.dart';
 import '../../../timeline/domain/repositories/i_timeline_repository.dart';
 import '../../domain/entities/sync_rule.dart';
 import '../../domain/entities/sync_status.dart';
@@ -80,6 +83,8 @@ class SyncRepositoryImpl implements ISyncRepository {
     }
   }
 
+  static const _downloadConcurrency = 5;
+
   @override
   Stream<SyncProgress> runSync() async* {
     yield SyncProgress.idle().copyWith(status: SyncStatus.running);
@@ -121,50 +126,56 @@ class SyncRepositoryImpl implements ISyncRepository {
           failed: failed,
         );
 
-        for (final photo in toDownload) {
-          yield SyncProgress(
-            status: SyncStatus.running,
-            total: total,
-            downloaded: downloaded,
-            failed: failed,
-            currentFile: photo.basename,
-          );
+        // S6 — parallel download pool with bounded concurrency.
+        final controller = StreamController<SyncProgress>();
+        final queue = Queue<Photo>.from(toDownload);
 
-          try {
-            final result = rule.downloadFull
-                ? await _download.downloadOriginal(
-                    fileId: photo.fileId,
-                    basename: photo.basename,
-                    mimetype: photo.mimetype,
-                  )
-                : await _download.downloadPreview(
-                    fileId: photo.fileId,
-                    etag: photo.etag ?? '',
-                    basename: photo.basename,
-                    mimetype: photo.mimetype,
-                  );
+        Future<void> worker() async {
+          while (queue.isNotEmpty) {
+            final photo = queue.removeFirst();
+            try {
+              final result = rule.downloadFull
+                  ? await _download.downloadOriginal(
+                      fileId: photo.fileId,
+                      basename: photo.basename,
+                      mimetype: photo.mimetype,
+                    )
+                  : await _download.downloadPreview(
+                      fileId: photo.fileId,
+                      etag: photo.etag ?? '',
+                      basename: photo.basename,
+                      mimetype: photo.mimetype,
+                    );
 
-            await _local.insertOrUpdateCacheEntry(db.SyncCacheEntriesCompanion(
-              fileId: Value(photo.fileId),
-              ruleId: Value(rule.id),
-              downloadFull: Value(rule.downloadFull),
-              localPath: Value(result.localPath),
-              etag: Value(photo.etag ?? ''),
-              downloadedAt: Value(DateTime.now()),
-              sizeBytes: Value(result.sizeBytes),
+              await _local.insertOrUpdateCacheEntry(db.SyncCacheEntriesCompanion(
+                fileId: Value(photo.fileId),
+                ruleId: Value(rule.id),
+                downloadFull: Value(rule.downloadFull),
+                localPath: Value(result.localPath),
+                etag: Value(photo.etag ?? ''),
+                downloadedAt: Value(DateTime.now()),
+                sizeBytes: Value(result.sizeBytes),
+              ));
+              downloaded++;
+            } catch (_) {
+              failed++;
+            }
+            controller.add(SyncProgress(
+              status: SyncStatus.running,
+              total: total,
+              downloaded: downloaded,
+              failed: failed,
+              currentFile: photo.basename,
             ));
-            downloaded++;
-          } catch (_) {
-            failed++;
           }
-
-          yield SyncProgress(
-            status: SyncStatus.running,
-            total: total,
-            downloaded: downloaded,
-            failed: failed,
-          );
         }
+
+        final workerCount = toDownload.length.clamp(1, _downloadConcurrency);
+        Future.wait(List.generate(workerCount, (_) => worker()))
+            .then((_) => controller.close())
+            .catchError(controller.addError);
+
+        yield* controller.stream;
 
         // Pruning: rimuovi file non più attesi da questa regola
         for (final entry in toPrune) {
@@ -202,6 +213,15 @@ class SyncRepositoryImpl implements ISyncRepository {
       return Right(await _local.getLocalPath(fileId));
     } catch (e) {
       return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Map<int, String>> getLocalPaths(Set<int> fileIds) async {
+    try {
+      return await _local.getLocalPaths(fileIds);
+    } catch (_) {
+      return {};
     }
   }
 
@@ -244,21 +264,26 @@ class SyncRepositoryImpl implements ISyncRepository {
       return result.fold((_) => [], (photos) => photos);
     }
 
-    // time_range: recupera tutte le giornate e filtra per epoch
-    final daysResult = await _timeline.getDays();
-    final days = daysResult.fold((_) => [], (d) => d);
+    // S8 — single batch request instead of N sequential getDayPhotos calls.
     final cutoffEpoch =
         DateTime.now().subtract(Duration(days: rule.daysBack!)).millisecondsSinceEpoch ~/
             1000;
 
-    final allPhotos = <Photo>[];
-    for (final day in days) {
-      final photosResult = await _timeline.getDayPhotos(day.dayId);
-      photosResult.fold(
-        (_) {},
-        (photos) => allPhotos.addAll(photos.where((p) => p.epoch >= cutoffEpoch)),
-      );
-    }
-    return allPhotos;
+    final daysResult = await _timeline.getDays();
+    final days = daysResult.fold((_) => <PhotoDay>[], (d) => d);
+
+    // Only fetch days that fall within the requested range.
+    final relevantDayIds = days
+        .where((d) => d.dayId * 86400 >= cutoffEpoch)
+        .map((d) => d.dayId)
+        .toList();
+
+    if (relevantDayIds.isEmpty) return [];
+
+    final photosResult = await _timeline.getDaysPhotos(relevantDayIds);
+    return photosResult.fold(
+      (_) => [],
+      (photos) => photos.where((p) => p.epoch >= cutoffEpoch).toList(),
+    );
   }
 }

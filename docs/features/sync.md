@@ -28,7 +28,7 @@ features/sync/
 ├── data/
 │   ├── datasources/
 │   │   ├── sync_local_datasource.dart      # lettura/scrittura Drift
-│   │   └── sync_download_datasource.dart   # download file via WebDAV/preview
+│   │   └── sync_download_datasource.dart   # download file via /api/stream + preview
 │   ├── models/
 │   │   └── sync_rule_model.dart            # Freezed + Drift table companion
 │   └── repositories/
@@ -131,7 +131,7 @@ class SyncProgress with _$SyncProgress {
 
 ### `RunSyncUseCase`
 Espone il sync alla presentation delegando a `SyncRepositoryImpl.runSync()`, dove vive l'orchestrazione descritta sotto. Per ogni `SyncRule` attiva:
-1. Recupera la lista foto attese dalla regola (via `ITimelineRepository` o `IAlbumsRepository`)
+1. Recupera la lista foto attese dalla regola (via `ITimelineRepository` o `IAlbumsRepository`). Per le regole `time_range`, `_getExpectedPhotos` recupera le foto dei giorni nel range con un **unico batch** `POST /days` multi-`dayId` (`getDaysPhotos`, S8), non più una richiesta per giorno.
 2. **Reconcile** — confronta le foto attese con le righe `sync_cache_entries` di quella regola:
    - foto attese ma assenti in cache → da scaricare
    - foto attese ma con `etag` diverso → da ri-scaricare (file cambiato)
@@ -150,7 +150,14 @@ Per ogni riga `sync_cache_entries` della regola il cui `file_id` **non** compare
 
 #### Scaricamento
 - Se `downloadFull = false`: usa `GET /image/preview/{fileId}?c={etag}&x=1920&y=1920&a=1` (preview alta risoluzione). Il parametro `c` (etag) è **obbligatorio**.
-- Se `downloadFull = true`: usa WebDAV `GET /remote.php/dav/files/{username}/{path}`. Il `{path}` DAV non è presente nella risposta di `POST /days` (che ritorna solo `fileid`/`basename`): serve un passaggio intermedio `GET /image/info/{fileId}` per ottenere il campo `filename` (path DAV completo).
+- Se `downloadFull = true`: usa `GET /api/stream/{fileId}` (download diretto per fileId, **S7**). Una sola richiesta: niente più `GET /image/info/{fileId}` per risolvere il path DAV né dipendenza WebDAV. L'endpoint supporta Range (resume in futuro).
+
+#### Concorrenza (S6)
+I download non sono più seriali: `runSync` usa un **worker pool a concorrenza limitata**
+(`_downloadConcurrency`, default 5). I worker consumano la coda dei file da scaricare e
+pubblicano l'avanzamento su uno `StreamController<SyncProgress>`; `runSync` (`async*`)
+fa `yield*` da quel controller. Tempo totale ≈ N / concorrenza × tempo medio per file.
+Il grado di parallelismo va tenuto basso per rispettare i limiti del server (429/503).
 
 Il path locale dove salvare: `{appDocumentsDir}/sync/{fileId}.{ext}`, dove:
 - `{appDocumentsDir}` è la directory documenti persistente dell'app (`getApplicationDocumentsDirectory()`), **non** la cache di sistema: i file offline non devono poter essere rimossi dall'OS sotto pressione di storage.
@@ -303,8 +310,9 @@ Non progettati in questa versione, elencati qui per non perderli di vista:
 
 Già presenti come dipendenze dirette in pubspec.yaml:
 - `drift` — persistenza regole e cache index
-- `webdav_client` — download originali
-- `dio` — download preview
+- `dio` — download preview **e** originali (questi ultimi via `GET /api/stream/{fileId}`, S7)
+
+> `webdav_client` non è più usato dal download degli originali (sostituito da `/api/stream`, S7). Verificare se è ancora referenziato altrove prima di rimuoverlo dal `pubspec.yaml`.
 
 Da aggiungere a pubspec.yaml:
 - `path_provider` — per `getApplicationDocumentsDirectory()`. Attualmente è solo una dipendenza **transitiva** (presente in `pubspec.lock`, tirata da flutter_cache_manager/drift): per usarla direttamente va dichiarata come dipendenza esplicita.

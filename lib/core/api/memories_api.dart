@@ -7,8 +7,11 @@ class MemoriesApi {
 
   static String ocsUser(String username) => '$_ocsBasePath/users/$username';
 
-  static String days() => '$basePath/days';
+  static String days({bool noPreload = false}) =>
+      '$basePath/days${noPreload ? '?nopreload=1' : ''}';
   static String dayPhotos(int dayId) => '$basePath/days/$dayId';
+
+  static String stream(int fileId) => '$basePath/stream/$fileId';
 
   static String albums() => '$basePath/clusters/albums';
   static String albumDays(String clusterId) => '$basePath/days?albums=${Uri.encodeComponent(clusterId)}';

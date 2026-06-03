@@ -53,4 +53,24 @@ class TimelineRemoteDatasource {
       rethrow;
     }
   }
+
+  /// Batch fetch photos for multiple days in a single POST /days request.
+  Future<List<PhotoModel>> getDaysPhotos(List<int> dayIds) async {
+    if (dayIds.isEmpty) return [];
+    try {
+      final response = await _dio.post(
+        MemoriesApi.days(),
+        data: {'dayIds': dayIds},
+        options: Options(contentType: 'application/json'),
+      );
+      debugPrint('[Timeline] POST /days batch(${dayIds.length}) status: ${response.statusCode}, photos: ${(response.data as List).length}');
+      final list = response.data as List<dynamic>;
+      return list
+          .map((e) => PhotoModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[Timeline] POST /days batch ERROR: $e');
+      rethrow;
+    }
+  }
 }

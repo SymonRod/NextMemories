@@ -95,14 +95,17 @@ Stream<List<Photo>> albumPhotos(Ref ref, String clusterId) async* {
 }
 
 // Arricchisce le foto con il path locale del file scaricato in cache, se presente.
+// T3 — una sola query DB (WHERE fileId IN ...) invece di una per foto.
 Future<List<Photo>> _withLocalPaths(Ref ref, List<Photo> photos) async {
   try {
     final syncRepo = ref.read(syncRepositoryProvider);
-    return await Future.wait(photos.map((p) async {
-      final r = await syncRepo.getLocalPath(p.fileId);
-      final path = r.fold((_) => null, (v) => v);
+    final ids = photos.map((p) => p.fileId).toSet();
+    final localPaths = await syncRepo.getLocalPaths(ids);
+    if (localPaths.isEmpty) return photos;
+    return photos.map((p) {
+      final path = localPaths[p.fileId];
       return path != null ? p.copyWith(localPath: path) : p;
-    }));
+    }).toList();
   } catch (_) {
     return photos;
   }

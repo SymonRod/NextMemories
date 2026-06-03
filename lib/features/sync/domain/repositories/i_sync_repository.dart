@@ -15,6 +15,9 @@ abstract class ISyncRepository {
 
   Future<Either<Failure, String?>> getLocalPath(int fileId);
 
+  /// Batch lookup of local paths for multiple file IDs (single DB query).
+  Future<Map<int, String>> getLocalPaths(Set<int> fileIds);
+
   /// Local file paths of all cached photos belonging to [ruleId].
   Future<Either<Failure, List<String>>> getLocalPhotoPathsForRule(int ruleId);
 

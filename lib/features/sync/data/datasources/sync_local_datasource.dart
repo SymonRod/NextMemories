@@ -55,6 +55,20 @@ class SyncLocalDatasource {
   Future<void> deleteCacheEntriesForRule(int ruleId) =>
       (_db.delete(_db.syncCacheEntries)..where((t) => t.ruleId.equals(ruleId))).go();
 
+  Future<Map<int, String>> getLocalPaths(Set<int> fileIds) async {
+    if (fileIds.isEmpty) return {};
+    final rows = await (_db.select(_db.syncCacheEntries)
+          ..where((t) => t.fileId.isIn(fileIds)))
+        .get();
+    final byFile = <int, String>{};
+    for (final e in rows) {
+      if (e.downloadFull || !byFile.containsKey(e.fileId)) {
+        byFile[e.fileId] = e.localPath;
+      }
+    }
+    return byFile;
+  }
+
   Future<String?> getLocalPath(int fileId) async {
     final entries = await (_db.select(_db.syncCacheEntries)
           ..where((t) => t.fileId.equals(fileId)))

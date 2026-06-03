@@ -6,24 +6,42 @@ part of 'timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$timelineDaysHash() => r'40a92318ed8a8e1303c89cf7b91f6a1ce6bcb731';
+String _$timelineRepositoryHash() =>
+    r'2e8978d8d17d9f79356fd77f234e8a90c6f3dd8c';
 
-/// See also [timelineDays].
-@ProviderFor(timelineDays)
-final timelineDaysProvider = AutoDisposeFutureProvider<List<PhotoDay>>.internal(
-  timelineDays,
-  name: r'timelineDaysProvider',
+/// See also [timelineRepository].
+@ProviderFor(timelineRepository)
+final timelineRepositoryProvider = Provider<TimelineRepositoryImpl>.internal(
+  timelineRepository,
+  name: r'timelineRepositoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$timelineDaysHash,
+      : _$timelineRepositoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef TimelineDaysRef = AutoDisposeFutureProviderRef<List<PhotoDay>>;
-String _$dayPhotosHash() => r'ba299c1b428e10db0008a85f69b57cab377b8acf';
+typedef TimelineRepositoryRef = ProviderRef<TimelineRepositoryImpl>;
+String _$timelineHash() => r'533844619aeb4b4d5ea26e6c15786dedf84d5495';
+
+/// See also [timeline].
+@ProviderFor(timeline)
+final timelineProvider = StreamProvider<TimelineData>.internal(
+  timeline,
+  name: r'timelineProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$timelineHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TimelineRef = StreamProviderRef<TimelineData>;
+String _$dayPhotosHash() => r'b6981e4fcb1cb93856cc6ab27a49b26f51cca400';
 
 /// Copied from Dart SDK
 class _SystemHash {
