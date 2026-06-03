@@ -27,6 +27,30 @@ class AlbumsRemoteDatasource {
     return dio;
   }
 
+  Future<void> deleteAlbum(String albumName) async {
+    final encodedAlbum = Uri.encodeComponent(albumName);
+    final path = '/remote.php/dav/photos/${_config.username}/albums/$encodedAlbum';
+    try {
+      await _dio.request<void>(path, options: Options(method: 'DELETE'));
+      debugPrint('[Albums] DELETE album "$albumName"');
+    } catch (e) {
+      debugPrint('[Albums] DELETE album "$albumName" ERROR: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createAlbum(String albumName) async {
+    final encodedAlbum = Uri.encodeComponent(albumName);
+    final path = '/remote.php/dav/photos/${_config.username}/albums/$encodedAlbum/';
+    try {
+      await _dio.request<void>(path, options: Options(method: 'MKCOL'));
+      debugPrint('[Albums] MKCOL album "$albumName" created');
+    } catch (e) {
+      debugPrint('[Albums] MKCOL album "$albumName" ERROR: $e');
+      rethrow;
+    }
+  }
+
   Future<List<AlbumModel>> getAlbums() async {
     try {
       final response = await _dio.get(MemoriesApi.albums());

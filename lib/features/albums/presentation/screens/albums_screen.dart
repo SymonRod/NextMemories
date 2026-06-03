@@ -28,7 +28,58 @@ class AlbumsScreen extends ConsumerWidget {
             ? const _EmptyView()
             : _AlbumsGrid(albums: albums),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateAlbumDialog(context, ref),
+        tooltip: 'Nuovo album',
+        child: const Icon(Icons.add),
+      ),
     );
+  }
+
+  Future<void> _showCreateAlbumDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nuovo album'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Nome album',
+              hintText: 'Es. Vacanze 2025',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Inserisci un nome';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.of(ctx).pop(true);
+              }
+            },
+            child: const Text('Crea'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(createAlbumProvider.notifier).create(controller.text.trim());
+    }
   }
 }
 

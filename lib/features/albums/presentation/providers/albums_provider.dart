@@ -13,6 +13,8 @@ import '../../data/repositories/albums_repository_impl.dart';
 import '../../domain/entities/album.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../domain/usecases/add_photos_to_album_use_case.dart';
+import '../../domain/usecases/create_album_use_case.dart';
+import '../../domain/usecases/delete_album_use_case.dart';
 import '../../domain/usecases/get_album_photos_use_case.dart';
 import '../../domain/usecases/get_albums_use_case.dart';
 import '../../domain/usecases/remove_photos_from_album_use_case.dart';
@@ -154,6 +156,58 @@ class AddPhotosToAlbum extends _$AddPhotosToAlbum {
         notifications.showSuccess(
           '${fileIds.length} ${fileIds.length == 1 ? 'foto aggiunta' : 'foto aggiunte'} a "$albumName"',
         );
+        return const AsyncData(null);
+      },
+    );
+  }
+}
+
+@riverpod
+class DeleteAlbum extends _$DeleteAlbum {
+  @override
+  Future<void> build() async {}
+
+  Future<void> delete(String albumName) async {
+    final config = ref.read(authProvider).valueOrNull;
+    if (config == null) throw Exception('Not authenticated');
+    final notifications = ref.read(notificationServiceProvider);
+    state = const AsyncLoading();
+    final repo = AlbumsRepositoryImpl.fromConfig(config);
+    final result = await DeleteAlbumUseCase(repo)(albumName);
+    state = result.fold(
+      (f) {
+        notifications.showError(f.message);
+        return AsyncError(f.message, StackTrace.current);
+      },
+      (_) {
+        ref.invalidate(albumsProvider);
+        notifications.showSuccess('Album "$albumName" eliminato');
+        return const AsyncData(null);
+      },
+    );
+  }
+}
+
+@riverpod
+class CreateAlbum extends _$CreateAlbum {
+  @override
+  Future<void> build() async {}
+
+  Future<void> create(String albumName) async {
+    final config = ref.read(authProvider).valueOrNull;
+    if (config == null) throw Exception('Not authenticated');
+    final notifications = ref.read(notificationServiceProvider);
+    state = const AsyncLoading();
+    final repo = AlbumsRepositoryImpl.fromConfig(config);
+    final result = await CreateAlbumUseCase(repo)(albumName);
+    state = result.fold(
+      (f) {
+        notifications.showError(f.message);
+        return AsyncError(f.message, StackTrace.current);
+      },
+      (_) {
+        ref.invalidate(albumsProvider);
+        notifications.showSuccess('Album "$albumName" creato');
         return const AsyncData(null);
       },
     );

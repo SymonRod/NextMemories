@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -27,11 +28,8 @@ void main() async {
   await SentryFlutter.init(
     (options) {
       options.dsn = 'https://12143d6b4caab4b946a920a7ac8f4f59@o4511503103295488.ingest.de.sentry.io/4511503105392720';
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
+      options.environment = kReleaseMode ? 'production' : 'development';
       options.tracesSampleRate = 1.0;
-      // The sampling rate for profiling is relative to tracesSampleRate
-      // Setting to 1.0 will profile 100% of sampled transactions:
       options.profilesSampleRate = 1.0;
     },
     appRunner: () => runApp(SentryWidget(child: 

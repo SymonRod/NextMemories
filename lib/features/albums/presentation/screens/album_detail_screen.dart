@@ -13,6 +13,21 @@ import '../../../timeline/presentation/providers/selection_provider.dart';
 import '../providers/albums_provider.dart';
 import '../widgets/album_picker_sheet.dart';
 
+enum _AlbumAction { delete }
+
+Future<void> _showDeleteDialog(
+    BuildContext context, WidgetRef ref, String albumName) async {
+  final controller = TextEditingController();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => _DeleteAlbumDialog(albumName: albumName, controller: controller),
+  );
+  if (confirmed == true && context.mounted) {
+    await ref.read(deleteAlbumProvider.notifier).delete(albumName);
+    if (context.mounted) context.pop();
+  }
+}
+
 class AlbumDetailScreen extends ConsumerWidget {
   final String clusterId;
   final String albumName;
@@ -39,7 +54,7 @@ class AlbumDetailScreen extends ConsumerWidget {
         ),
         data: (photos) {
           if (config == null || photos.isEmpty) {
-            return _EmptyBody(albumName: albumName);
+            return _EmptyBody(albumName: albumName, widgetRef: ref);
           }
 
           final credentials = base64Encode(
@@ -63,6 +78,32 @@ class AlbumDetailScreen extends ConsumerWidget {
                       tooltip: 'Annulla selezione',
                       onPressed: () =>
                           ref.read(selectionProvider.notifier).state = const {},
+                    ),
+                  if (!inSelectionMode)
+                    PopupMenuButton<_AlbumAction>(
+                      onSelected: (action) {
+                        if (action == _AlbumAction.delete) {
+                          _showDeleteDialog(context, ref, albumName);
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: _AlbumAction.delete,
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline,
+                                  color: Theme.of(context).colorScheme.error,
+                                  size: 20),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Elimina album',
+                                style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -311,13 +352,44 @@ class _AlbumPhotoTile extends ConsumerWidget {
 
 class _EmptyBody extends StatelessWidget {
   final String albumName;
-  const _EmptyBody({required this.albumName});
+  final WidgetRef widgetRef;
+  const _EmptyBody({required this.albumName, required this.widgetRef});
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverAppBar(title: Text(albumName), floating: true, snap: true),
+        SliverAppBar(
+          title: Text(albumName),
+          floating: true,
+          snap: true,
+          actions: [
+            PopupMenuButton<_AlbumAction>(
+              onSelected: (action) {
+                if (action == _AlbumAction.delete) {
+                  _showDeleteDialog(context, widgetRef, albumName);
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: _AlbumAction.delete,
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline,
+                          color: Theme.of(context).colorScheme.error, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Elimina album',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         SliverFillRemaining(
           child: Center(
             child: Column(
@@ -332,6 +404,92 @@ class _EmptyBody extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DeleteAlbumDialog extends StatefulWidget {
+  final String albumName;
+  final TextEditingController controller;
+  const _DeleteAlbumDialog({required this.albumName, required this.controller});
+
+  @override
+  State<_DeleteAlbumDialog> createState() => _DeleteAlbumDialogState();
+}
+
+class _DeleteAlbumDialogState extends State<_DeleteAlbumDialog> {
+  bool _matches = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  void _onChanged() {
+    final matches = widget.controller.text == widget.albumName;
+    if (matches != _matches) setState(() => _matches = matches);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: const Text('Elimina album'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: Theme.of(context).textTheme.bodyMedium,
+              children: [
+                const TextSpan(text: 'Digita '),
+                TextSpan(
+                  text: widget.albumName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.error,
+                  ),
+                ),
+                const TextSpan(text: ' per confermare l\'eliminazione.'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: widget.controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: widget.albumName,
+              errorText: widget.controller.text.isNotEmpty && !_matches
+                  ? 'Il nome non corrisponde'
+                  : null,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Annulla'),
+        ),
+        FilledButton(
+          onPressed: _matches ? () => Navigator.of(context).pop(true) : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: colorScheme.error,
+            foregroundColor: colorScheme.onError,
+            disabledBackgroundColor: colorScheme.error.withValues(alpha: 0.3),
+          ),
+          child: const Text('Elimina'),
         ),
       ],
     );
