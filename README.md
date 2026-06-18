@@ -5,13 +5,19 @@ Funziona offline tramite cache locale. Target primario: Android.
 
 ## Documentazione
 
-Tutta la documentazione tecnica è in [`docs/`](docs/index.md):
+Tutta la documentazione tecnica è in [`docs/index.md`](docs/index.md):
 
 - [Architettura](docs/architettura.md) — FFCA, layer, convenzioni
 - [API Nextcloud](docs/api.md) — endpoint Memories API e OCS
 - [Ambiente di sviluppo](docs/sviluppo.md) — setup, build, hot reload
 - [Feature: Auth](docs/features/auth.md)
 - [Feature: Profile](docs/features/profile.md)
+- [Feature: Timeline](docs/features/timeline.md)
+- [Feature: Viewer](docs/features/viewer.md)
+- [Feature: Album](docs/features/albums.md)
+- [Feature: Sync](docs/features/sync.md)
+
+Per lo stato aggiornato delle feature vedi anche l'indice in `docs/index.md`.
 
 ## Avvio rapido
 
